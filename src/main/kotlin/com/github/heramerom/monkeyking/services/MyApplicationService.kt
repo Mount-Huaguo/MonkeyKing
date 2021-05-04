@@ -1,6 +1,6 @@
-package org.jetbrains.plugins.template.services
+package com.github.heramerom.monkeyking.services
 
-import org.jetbrains.plugins.template.MyBundle
+import com.github.heramerom.monkeyking.MyBundle
 
 class MyApplicationService {
 
