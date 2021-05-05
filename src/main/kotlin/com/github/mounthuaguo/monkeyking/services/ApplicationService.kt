@@ -1,10 +1,10 @@
 package com.github.mounthuaguo.monkeyking.services
 
-import com.github.mounthuaguo.monkeyking.Bundle
+import com.github.mounthuaguo.monkeyking.MKBundle
 
 class ApplicationService {
 
     init {
-        println(Bundle.message("applicationService"))
+        println(MKBundle.message("applicationService"))
     }
 }

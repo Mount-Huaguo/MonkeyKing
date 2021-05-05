@@ -17,17 +17,24 @@
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
 
-
     <actions>
-        <group id="com.heramerom.monkeyking.group" text="MK Menu"
+        <group id="com.github.mounthuaguo.monkeyking.menugroup" text="Monkey King"
                popup="true">
-            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode"/>
-            <action id="com.heramerom.monkeyking.mk"
-                    class="com.github.mounthuaguo.mk.actions.MonkeyKingMenu"
-                    text="MonkeyKing" description="MonkeyKing">
+            <add-to-group group-id="EditorPopupMenu"
+                          anchor="after"
+                          relative-to-action="EditorToggleColumnMode"/>
+            <separator/>
+            <action id="com.github.mounthuaguo.monkeyking.luaaction"
+                    class="com.github.mounthuaguo.monkeyking.actions.LuaScriptAction"
+                    text="Process Text with Lua Script"
+                    description="Process text with lua script">
+            </action>
+            <action id="com.github.mounthuaguo.monkeyking.jsaction"
+                    class="com.github.mounthuaguo.monkeyking.actions.JSScriptAction"
+                    text="Process Text with Javascript Script"
+                    description="Process text with javascript script">
             </action>
         </group>
     </actions>
-
 
 </idea-plugin>
