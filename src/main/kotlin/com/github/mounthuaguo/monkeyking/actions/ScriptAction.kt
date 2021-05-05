@@ -53,8 +53,8 @@ class ScriptActionWrap(
 
     fun showDialog() {
         if (dialog.showAndGet()) {
-//            targetText = execScript(sourceText, scriptText)
-//            dialog.setTargetDocument(targetText)
+            targetText = execScript(sourceText, scriptText)
+            dialog.setTargetDocument(targetText)
         }
     }
 

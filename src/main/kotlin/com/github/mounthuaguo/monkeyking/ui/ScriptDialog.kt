@@ -14,29 +14,32 @@ import org.jetbrains.annotations.Nullable
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.GridLayout
+import java.awt.event.ActionEvent
+import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
 
 class ScriptDialogWrapper(
-    language: String,
-    sourceText: String,
+    private val language: String,
+    private var sourceText: String,
     private var template: String,
     private val callback: (String, String) -> Unit
 ) :
     DialogWrapper(false) {
 
-    //    private val sourceEditor: Editor
-//    private val targetEditor: Editor
-//    private val scriptEditor: Editor
-//    private val panel: JPanel
-//
-//    private val targetDocument: Document
-//
-//    init {
-//
-//        println("init ScriptDialog")
-//
-//        title = MKBundle.getMessage("scriptDialogTitle")
+    private var sourceEditor: Editor? = null
+    private var targetEditor: Editor? = null
+    private var scriptEditor: Editor? = null
+    private var panel: JPanel? = null
+
+    private var targetDocument: Document? = null
+
+    init {
+        init()
+
+        println("init ScriptDialog")
+
+        title = MKBundle.getMessage("scriptDialogTitle")
 //
 //        if (template == null) {
 //            template = MKBundle.getMessage("luaTemplate")
@@ -71,91 +74,129 @@ class ScriptDialogWrapper(
 //
 //        panel = JPanel(GridLayout(1, 2, 10, 10))
 //
-////        val leftPanel = JPanel(GridLayout(2, 1, 10, 10))
+//        val leftPanel = JPanel(GridLayout(2, 1, 10, 10))
+//        leftPanel.add(sourceEditor.component)
+//        leftPanel.add(targetEditor.component)
 ////        leftPanel.add(wrapEditor("Source", sourceEditor))
 ////        leftPanel.add(wrapEditor("Target", targetEditor))
-////        panel.add(leftPanel)
-//        //        panel.add(wrapEditor("Script", scriptEditor))
-//
-//        val label1 = JBLabel("xxxxxxxx")
-//        panel.add(label1)
-//
-//        val label2 = JBLabel("xxxxxxxxxxxxxxx")
-//        panel.add(label2)
-//
+//        panel.add(leftPanel)
+////        panel.add(wrapEditor("Script", scriptEditor))
+//        panel.add(scriptEditor.component)
 //        panel.preferredSize = Dimension(800, 600)
-//
-//    }
-//
-//    private fun sourceTextHasChanged(txt: String) {
-//        callback("source", txt)
-//    }
-//
-//    private fun scriptTextHasChanged(txt: String) {
-//        callback("script", txt)
-//    }
-//
-    fun setTargetDocument(txt: String) {
-//        targetDocument.setText(txt)
     }
-//
-//    private fun wrapEditor(editorName: String, editor: Editor): JPanel {
-//        val wrapPanel = JPanel(BorderLayout())
-//        val label = JBLabel(editorName)
-//        wrapPanel.add(label, BorderLayout.NORTH)
-//        wrapPanel.add(editor.component, BorderLayout.CENTER)
-//        return wrapPanel
-//    }
-//
-//    private fun createEditor(filename: String, document: Document, showLineMakerArea: Boolean): Editor {
-//        val fileExtension: String = FileUtilRt.getExtension(filename)
-//        val sourceEditor: Editor = EditorFactory.getInstance().createEditor(
-//            document,
-//            null,
-//            FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
-//            false
-//        )
-//        if (!showLineMakerArea) {
-//            sourceEditor.settings.isLineNumbersShown = false
-//            sourceEditor.settings.isLineMarkerAreaShown = false
-//            sourceEditor.settings.isFoldingOutlineShown = false
-//            sourceEditor.settings.isAutoCodeFoldingEnabled = false
-//        }
-//        return sourceEditor
-//    }
+
+    private fun sourceTextHasChanged(txt: String) {
+        callback("source", txt)
+    }
+
+    private fun scriptTextHasChanged(txt: String) {
+        callback("script", txt)
+    }
+
+    fun setTargetDocument(txt: String) {
+        targetDocument ?: return
+        targetDocument!!.setText(txt)
+    }
+
+    private fun wrapEditor(editorName: String, editor: Editor): JPanel {
+        val wrapPanel = JPanel(BorderLayout())
+        val label = JBLabel(editorName)
+        wrapPanel.add(label, BorderLayout.NORTH)
+        wrapPanel.add(editor.component, BorderLayout.CENTER)
+        return wrapPanel
+    }
+
+    private fun createEditor(filename: String, document: Document, showLineMakerArea: Boolean): Editor {
+        val fileExtension: String = FileUtilRt.getExtension(filename)
+        val editor: Editor = EditorFactory.getInstance().createEditor(
+            document,
+            null,
+            FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+            false
+        )
+        if (!showLineMakerArea) {
+            editor.settings.isLineNumbersShown = false
+            editor.settings.isLineMarkerAreaShown = false
+            editor.settings.isFoldingOutlineShown = false
+            editor.settings.isAutoCodeFoldingEnabled = false
+        }
+        return editor
+    }
 
     @Nullable
     override fun createCenterPanel(): JComponent {
-        println("ScriptDialog createCenterPanel")
-        val panel = JPanel(GridLayout(1, 2, 10, 10))
+        println("createCenterPanel")
 
-        val label1 = JBLabel("xxxxxxxx")
-        panel.add(label1)
 
-        val label2 = JBLabel("xxxxxxxxxxxxxxx")
-        panel.add(label2)
+        if (template == null) {
+            template = MKBundle.getMessage("luaTemplate")
+            if (language == "js") {
+                template = MKBundle.getMessage("jsTemplate")
+            }
+        }
 
-        panel.preferredSize = Dimension(800, 600)
+        val factory = EditorFactory.getInstance()
+        val sourceDocument: Document = factory.createDocument(sourceText)
+        sourceDocument.setReadOnly(false)
+        sourceDocument.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) {
+                sourceTextHasChanged(event.document.text)
+            }
+        })
 
-        return panel
+        sourceEditor = createEditor("plain.txt", sourceDocument, false)
+
+        targetDocument = factory.createDocument("")
+        targetDocument!!.setReadOnly(false)
+        targetEditor = createEditor("plain.txt", targetDocument!!, false)
+
+        val scriptDocument: Document = factory.createDocument(template)
+        scriptDocument.setReadOnly(false)
+        scriptDocument.addDocumentListener(object : DocumentListener {
+            override fun documentChanged(event: DocumentEvent) {
+                scriptTextHasChanged(event.document.text)
+            }
+        })
+        scriptEditor = createEditor("script.$language", scriptDocument, true)
+
+        panel = JPanel(GridLayout(1, 2, 10, 10))
+
+        val leftPanel = JPanel(GridLayout(2, 1, 10, 10))
+        leftPanel.add(wrapEditor("Source", sourceEditor!!))
+        leftPanel.add(wrapEditor("Target", targetEditor!!))
+        panel!!.add(leftPanel)
+        panel!!.add(wrapEditor("Script", scriptEditor!!))
+        panel!!.preferredSize = Dimension(800, 600)
+        return panel!!
     }
 
-//    // custom actions
-//    override fun createLeftSideActions(): Array<Action> {
-//
-//        val copy = object : DialogWrapperAction("Copy to Clipboard") {
-//            override fun doAction(e: ActionEvent?) {
-//                callback("copy", targetEditor.document.text)
-//            }
-//        }
-//
-//        val replace = object : DialogWrapperAction("Replace") {
-//            override fun doAction(e: ActionEvent?) {
+    // custom actions
+    override fun createActions(): Array<Action> {
+
+        val copy = object : DialogWrapperAction("Copy to Clipboard") {
+            override fun doAction(e: ActionEvent?) {
+                targetEditor ?: return
+                callback("copy", targetEditor!!.document.text)
+                close(1)
+            }
+        }
+
+        val replace = object : DialogWrapperAction("Replace") {
+            override fun doAction(e: ActionEvent?) {
+                targetEditor ?: return
+                callback("replace", targetEditor!!.document.text)
+                close(1)
+            }
+        }
+
+        val cancel = object : DialogWrapperAction("Cancel") {
+            override fun doAction(e: ActionEvent?) {
 //                callback("replace", targetEditor.document.text)
-//            }
-//        }
-//
-//        return arrayOf(copy, replace)
-//    }
+                close(1)
+            }
+        }
+
+        return arrayOf(copy, replace, cancel)
+    }
 
 }
