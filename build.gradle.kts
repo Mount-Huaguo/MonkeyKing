@@ -30,6 +30,7 @@ repositories {
 }
 dependencies {
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.16.0")
+    implementation("com.soywiz.korlibs.luak:luak-jvm:2.0.7")
 }
 
 // Configure gradle-intellij-plugin plugin.

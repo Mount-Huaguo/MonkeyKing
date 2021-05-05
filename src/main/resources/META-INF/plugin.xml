@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>com.github.heramerom.monkeyking</id>
+    <id>com.github.mounthuaguo.monkeyking</id>
     <name>MonkeyKing</name>
     <vendor>heramerom</vendor>
 
@@ -8,12 +8,26 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.heramerom.monkeyking.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.heramerom.monkeyking.services.MyProjectService"/>
+        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ApplicationService"/>
+        <projectService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ProjectService"/>
     </extensions>
 
     <applicationListeners>
-        <listener class="com.github.heramerom.monkeyking.listeners.MyProjectManagerListener"
+        <listener class="com.github.mounthuaguo.monkeyking.listeners.ProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
+
+
+    <actions>
+        <group id="com.heramerom.monkeyking.group" text="MK Menu"
+               popup="true">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="EditorToggleColumnMode"/>
+            <action id="com.heramerom.monkeyking.mk"
+                    class="com.github.mounthuaguo.mk.actions.MonkeyKingMenu"
+                    text="MonkeyKing" description="MonkeyKing">
+            </action>
+        </group>
+    </actions>
+
+
 </idea-plugin>
