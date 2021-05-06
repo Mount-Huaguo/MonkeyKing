@@ -7,22 +7,24 @@
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
+    <!--  service  -->
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ApplicationService"/>
         <projectService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ProjectService"/>
     </extensions>
 
+    <!--  listeners  -->
     <applicationListeners>
         <listener class="com.github.mounthuaguo.monkeyking.listeners.ProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
     </applicationListeners>
 
+    <!--  actions  -->
     <actions>
         <group id="com.github.mounthuaguo.monkeyking.menugroup" text="Monkey King"
                popup="true">
-            <add-to-group group-id="EditorPopupMenu"
-                          anchor="after"
-                          relative-to-action="EditorToggleColumnMode"/>
+            <add-to-group group-id="EditMenu" anchor="last"/>
+
             <separator/>
             <action id="com.github.mounthuaguo.monkeyking.luaaction"
                     class="com.github.mounthuaguo.monkeyking.actions.LuaScriptAction"
@@ -36,5 +38,22 @@
             </action>
         </group>
     </actions>
+
+    <!-- configurable -->
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="tools"
+                                 instance="com.github.mounthuaguo.monkeyking.settings.MKConfigure"
+                                 id="com.github.mounthuaguo.monkeyking.settings.MKConfigure"
+                                 displayName="Monkey King"/>
+
+    </extensions>
+
+    <!-- tool window -->
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Monkey King"
+                    anchor="right"
+                    icon="AllIcons.General.Modified"
+                    factoryClass="com.github.mounthuaguo.monkeyking.ui.ToolWindowFactory"/>
+    </extensions>
 
 </idea-plugin>

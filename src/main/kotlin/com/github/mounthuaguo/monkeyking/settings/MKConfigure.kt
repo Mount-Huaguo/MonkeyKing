@@ -1,24 +1,28 @@
 package com.github.mounthuaguo.monkeyking.settings
 
+import com.github.mounthuaguo.monkeyking.MKBundle
 import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 
 
 class MKConfigure : Configurable {
+
+    private val component = MKConfigureComponent()
+
     override fun createComponent(): JComponent? {
-        TODO("Not yet implemented")
+        return component.getPanel()
     }
 
     override fun isModified(): Boolean {
-        TODO("Not yet implemented")
+        return true
     }
 
     override fun apply() {
-        TODO("Not yet implemented")
+
     }
 
     override fun getDisplayName(): String {
-        TODO("Not yet implemented")
+        return MKBundle.message("configName")
     }
 
 }

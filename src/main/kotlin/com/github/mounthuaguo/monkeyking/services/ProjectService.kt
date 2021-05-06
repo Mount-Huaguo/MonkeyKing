@@ -8,4 +8,8 @@ class ProjectService(project: Project) {
     init {
         println(MKBundle.message("projectService", project.name))
     }
+
+//    override fun toString(): String {
+//        return "ProjectService: project ${project.name}"
+//    }
 }
