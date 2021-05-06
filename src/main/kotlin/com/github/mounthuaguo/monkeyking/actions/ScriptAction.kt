@@ -52,10 +52,13 @@ class ScriptActionWrap(
     }
 
     fun showDialog() {
+        println("showDialog")
+        targetText = execScript(sourceText, scriptText)
+        dialog.setTargetDocument(targetText)
         if (dialog.showAndGet()) {
-            targetText = execScript(sourceText, scriptText)
-            dialog.setTargetDocument(targetText)
+            // todo
         }
+        println("showDialog success")
     }
 
     private fun handleCallBack(typ: String, text: String) {

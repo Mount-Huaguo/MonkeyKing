@@ -40,49 +40,6 @@ class ScriptDialogWrapper(
         println("init ScriptDialog")
 
         title = MKBundle.getMessage("scriptDialogTitle")
-//
-//        if (template == null) {
-//            template = MKBundle.getMessage("luaTemplate")
-//            if (language == "js") {
-//                template = MKBundle.getMessage("jsTemplate")
-//            }
-//        }
-//
-//        val factory = EditorFactory.getInstance()
-//        val sourceDocument: Document = factory.createDocument(sourceText)
-//        sourceDocument.setReadOnly(false)
-//        sourceDocument.addDocumentListener(object : DocumentListener {
-//            override fun documentChanged(event: DocumentEvent) {
-//                sourceTextHasChanged(event.document.text)
-//            }
-//        })
-//
-//        sourceEditor = createEditor("plain.txt", sourceDocument, false)
-//
-//        targetDocument = factory.createDocument("")
-//        targetDocument.setReadOnly(true)
-//        targetEditor = createEditor("plain.txt", targetDocument, false)
-//
-//        val scriptDocument: Document = factory.createDocument(template)
-//        scriptDocument.setReadOnly(false)
-//        scriptDocument.addDocumentListener(object : DocumentListener {
-//            override fun documentChanged(event: DocumentEvent) {
-//                scriptTextHasChanged(event.document.text)
-//            }
-//        })
-//        scriptEditor = createEditor("script.$language", scriptDocument, true)
-//
-//        panel = JPanel(GridLayout(1, 2, 10, 10))
-//
-//        val leftPanel = JPanel(GridLayout(2, 1, 10, 10))
-//        leftPanel.add(sourceEditor.component)
-//        leftPanel.add(targetEditor.component)
-////        leftPanel.add(wrapEditor("Source", sourceEditor))
-////        leftPanel.add(wrapEditor("Target", targetEditor))
-//        panel.add(leftPanel)
-////        panel.add(wrapEditor("Script", scriptEditor))
-//        panel.add(scriptEditor.component)
-//        panel.preferredSize = Dimension(800, 600)
     }
 
     private fun sourceTextHasChanged(txt: String) {
@@ -173,6 +130,12 @@ class ScriptDialogWrapper(
     // custom actions
     override fun createActions(): Array<Action> {
 
+        val cancel = object : DialogWrapperAction("Cancel") {
+            override fun doAction(e: ActionEvent?) {
+                close(1)
+            }
+        }
+
         val copy = object : DialogWrapperAction("Copy to Clipboard") {
             override fun doAction(e: ActionEvent?) {
                 targetEditor ?: return
@@ -189,14 +152,7 @@ class ScriptDialogWrapper(
             }
         }
 
-        val cancel = object : DialogWrapperAction("Cancel") {
-            override fun doAction(e: ActionEvent?) {
-//                callback("replace", targetEditor.document.text)
-                close(1)
-            }
-        }
-
-        return arrayOf(copy, replace, cancel)
+        return arrayOf(cancel, copy, replace)
     }
 
 }
