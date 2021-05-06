@@ -91,24 +91,6 @@ class MKConfigureComponent {
         toolbarDecorator.setActionGroup(ag)
         toolbarDecorator.setToolbarPosition(ActionToolbarPosition.RIGHT)
 
-        // editor
-//        val fileExtension: String = FileUtilRt.getExtension("script.lua")
-//        val editorFactory: EditorFactory = EditorFactory.getInstance()
-//        val document: Document = editorFactory.createDocument("")
-//        document.setReadOnly(false)
-//        document.addDocumentListener(object : DocumentListener {
-//            override fun documentChanged(event: DocumentEvent) {
-//
-//            }
-//        })
-//
-//        val editor: Editor = editorFactory.createEditor(
-//            document,
-//            null,
-//            FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
-//            false
-//        )
-
         val editor = EditorTextField()
         editor.setOneLineMode(false)
 

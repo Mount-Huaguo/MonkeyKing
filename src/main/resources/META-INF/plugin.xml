@@ -21,10 +21,11 @@
 
     <!--  actions  -->
     <actions>
-        <group id="com.github.mounthuaguo.monkeyking.menugroup" text="Monkey King"
+        <group id="MonkeyKing.ActionGroup.Main"
+               description="Group of monkey king actions"
+               text="Monkey King"
                popup="true">
-            <add-to-group group-id="EditMenu" anchor="last"/>
-
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <separator/>
             <action id="com.github.mounthuaguo.monkeyking.luaaction"
                     class="com.github.mounthuaguo.monkeyking.actions.LuaScriptAction"
