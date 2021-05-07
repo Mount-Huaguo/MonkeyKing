@@ -30,12 +30,18 @@ class MKConfigureComponent {
     private val mainPanel: JPanel = JBPanel<JBPanel<*>>();
     private val scriptTable: JBTable = JBTable()
     private val scripts = mutableListOf<MKData>()
-    private val editor = EditorPanel()
+    private val state = MKState.getInstance()
+    private val editor = EditorPanel() {
+        // todo lose focus
+    }
     private var selectRow = -1;
 
     init {
 
         // table
+        scripts.addAll(state.getScripts())
+
+        println("state.getScripts(), ${state.getScripts()}")
 
         scriptTable.setShowColumns(true)
         scriptTable.model = object : AbstractTableModel() {
@@ -60,8 +66,8 @@ class MKConfigureComponent {
             override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
                 when (columnIndex) {
                     0 -> return scripts[rowIndex].title
-                    1 -> return scripts[rowIndex].description
-                    2 -> return scripts[rowIndex].raw
+                    1 -> return scripts[rowIndex].language
+                    2 -> return scripts[rowIndex].description
                 }
                 return "error"
             }
@@ -148,7 +154,42 @@ class MKConfigureComponent {
         scriptTable.repaint()
     }
 
-    private class EditorPanel() : JBPanel<JBPanel<*>>(BorderLayout()) {
+    fun saveScripts() {
+//        val m = mutableMapOf<String, Unit>()
+//        for (s in scripts) {
+//            if (!s.isValid()) {
+//                return
+//            }
+//            // id duplicate
+//            if (m.containsKey(s.id)) {
+//                return
+//            }
+//            m[s.id] = Unit
+//        }
+        state.setScript(scripts)
+        state.state
+    }
+
+    fun isEqual(): Boolean {
+        if (state.getScripts().size != scripts.size) {
+            return false
+        }
+        val m = mutableMapOf<String, Unit>()
+        val ss = state.getScripts()
+        for (s in ss) {
+            m[s.raw] = Unit
+        }
+        for (s in scripts) {
+            if (!m.containsKey(s.raw)) {
+                return false
+            }
+        }
+        return true
+    }
+
+
+    //
+    private class EditorPanel(focusLostFunc: () -> Unit) : JBPanel<JBPanel<*>>(BorderLayout()) {
 
         var script: MKData? = null
 
@@ -185,7 +226,7 @@ class MKConfigureComponent {
                 }
 
                 override fun focusLost(e: FocusEvent?) {
-                    // todo notify parent
+                    focusLostFunc()
                 }
 
             })
@@ -212,8 +253,6 @@ class MKConfigureComponent {
         fun languageChanged() {
 
         }
-
-
     }
 
 

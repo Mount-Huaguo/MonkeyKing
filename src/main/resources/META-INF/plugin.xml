@@ -13,6 +13,12 @@
         <projectService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ProjectService"/>
     </extensions>
 
+
+    <!--    -->
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.MKState"/>
+    </extensions>
+
     <!--  listeners  -->
     <applicationListeners>
         <listener class="com.github.mounthuaguo.monkeyking.listeners.ProjectManagerListener"

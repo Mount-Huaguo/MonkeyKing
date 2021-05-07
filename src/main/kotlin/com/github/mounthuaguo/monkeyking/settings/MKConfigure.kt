@@ -14,11 +14,13 @@ class MKConfigure : Configurable {
     }
 
     override fun isModified(): Boolean {
-        return true
+        return !component.isEqual()
     }
 
     override fun apply() {
-
+        component.saveScripts()
+//        MKState.getInstance().state
+        // todo process state
     }
 
     override fun getDisplayName(): String {

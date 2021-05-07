@@ -20,16 +20,9 @@ data class MKData(var language: String, var raw: String) {
     var topic: String = ""
     var requires: List<ScriptRequire> = listOf()
     var menus: List<String> = listOf()
-    var isValid = false
 
     init {
         parse()
-        isValid = try {
-            check()
-            true
-        } catch (e: Exception) {
-            false
-        }
     }
 
     // unnamed
@@ -37,22 +30,23 @@ data class MKData(var language: String, var raw: String) {
         title = "unnamed"
     }
 
-    private fun check() {
+    fun isValid(): Boolean {
         if (language != "lua" && language != "js") {
-            throw Exception("language must be lua or js")
+            return false
         }
         if (action != "menu" && action != "template" && action != "listener") {
-            throw Exception("action must be menu, template or listener")
+            return false
         }
         if (id == "") {
-            throw Exception("script id is required")
+            return false
         }
         if (title == "") {
-            throw Exception("script title is required")
+            return false
         }
         if (title.length > 256) {
-            throw Exception("script title is too long")
+            return false
         }
+        return true
     }
 
     private fun parse() {
@@ -142,6 +136,9 @@ class MKState : PersistentStateComponent<MKState> {
         return scripts
     }
 
+    fun setScript(ss: List<MKData>) {
+        scripts = ss
+    }
 
     companion object {
         fun getInstance(): MKState {
