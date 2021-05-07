@@ -6,17 +6,20 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.event.DocumentEvent
+import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.wm.WindowManager
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.JBPanel
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.Window
+import java.awt.event.FocusEvent
+import java.awt.event.FocusListener
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 import javax.swing.table.AbstractTableModel
@@ -24,9 +27,10 @@ import javax.swing.table.AbstractTableModel
 
 class MKConfigureComponent {
 
-    private val mainPanel: JPanel = JPanel();
+    private val mainPanel: JPanel = JBPanel<JBPanel<*>>();
     private val scriptTable: JBTable = JBTable()
-    private val scripts: List<MKData> = listOf()
+    private val scripts = mutableListOf<MKData>()
+    private val editor = EditorPanel()
     private var selectRow = -1;
 
     init {
@@ -46,11 +50,11 @@ class MKConfigureComponent {
 
             override fun getColumnName(index: Int): String {
                 when (index) {
-                    0 -> return "标题"
-                    1 -> return "描述"
-                    2 -> return "元数据"
+                    0 -> return "NAME"
+                    1 -> return "LANGUAGE"
+                    2 -> return "DESCRIPTION"
                 }
-                return "错误"
+                return "exception"
             }
 
             override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
@@ -70,18 +74,26 @@ class MKConfigureComponent {
         scriptTable.setShowGrid(false)
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
-            println("scriptTable.selectedRow ${scriptTable.selectedRow}")
-            selectRow = scriptTable.selectedRow
+            println("ListSelectionListener ${scriptTable.selectedRow}")
+            processChangedScript()
+            reselectTable()
         }
 
         val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
+        // add
         val action1: AnAction = object : DumbAwareAction(AllIcons.General.Add) {
             override fun actionPerformed(e: AnActionEvent) {
+                println("action1 actionPerformed ${e}")
 
+                scripts.add(MKData("lua"))
+                scriptTable.removeRowSelectionInterval(selectRow, selectRow)
+                refreshTable()
+                scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
             }
         }
 
-        val action2: AnAction = object : DumbAwareAction(AllIcons.Actions.Search) {
+        // browser
+        val action2: AnAction = object : DumbAwareAction(AllIcons.Actions.Show) {
             override fun actionPerformed(e: AnActionEvent) {
                 println("e.project, ${e.project}")
                 if (BrowserDialog().showAndGet()) {
@@ -90,18 +102,23 @@ class MKConfigureComponent {
             }
         }
 
-        val action3: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
+        // edit
+        val action3: AnAction = object : DumbAwareAction(AllIcons.Actions.Edit) {
             override fun actionPerformed(e: AnActionEvent) {
                 println(e)
             }
         }
 
-        val ag = DefaultActionGroup(action1, action2, action3)
+        val action4: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
+            override fun actionPerformed(e: AnActionEvent) {
+                println(e)
+            }
+        }
+
+        val ag = DefaultActionGroup(action1, action2, action4)
         toolbarDecorator.setActionGroup(ag)
         toolbarDecorator.setToolbarPosition(ActionToolbarPosition.RIGHT)
 
-        val editor = EditorTextField()
-        editor.setOneLineMode(false)
 
         val tablePanel = toolbarDecorator.createPanel()
         tablePanel.minimumSize = Dimension(100, 500)
@@ -110,26 +127,94 @@ class MKConfigureComponent {
         mainPanel.layout = BorderLayout()
         mainPanel.add(tablePanel, BorderLayout.NORTH)
         mainPanel.add(editor, BorderLayout.CENTER)
-
-
-//        println("ServiceManager.getService(ProjectService::class.java) ${ServiceManager.getService(ProjectService::class.java)}")
-
-
-//        val projects: Array<Project> = ProjectManager.getInstance().openProjects
-//        var activeProject: Project? = null
-//        for (project in projects) {
-//            val window: Window? = WindowManager.getInstance().suggestParentWindow(project)
-//            if (window != null && window.isActive) {
-//                activeProject = project
-//            }
-//        }
-//        println("activeProject ${activeProject}")
-
     }
 
+    private fun reselectTable() {
+        selectRow = scriptTable.selectedRow
+        val d = scripts[selectRow]
+        editor.setScriptData(d)
+    }
 
     fun getPanel(): JPanel {
         return mainPanel
     }
+
+    private fun processChangedScript() {
+        val d = editor.getScriptData() ?: return
+        scripts[selectRow] = d
+    }
+
+    fun refreshTable() {
+        scriptTable.repaint()
+    }
+
+    private class EditorPanel() : JBPanel<JBPanel<*>>(BorderLayout()) {
+
+        var script: MKData? = null
+
+        private val editor = EditorTextField()
+        private val cmb = ComboBox<String>()
+
+        init {
+            val headerPanel = JBPanel<JBPanel<*>>(BorderLayout())
+            val lang = JBLabel("Language")
+            headerPanel.add(lang, BorderLayout.WEST)
+            cmb.addItem("lua")
+            cmb.addItem("js")
+            headerPanel.add(cmb, BorderLayout.CENTER)
+
+            cmb.addItemListener { event ->
+                script?.language = event.item.toString()
+                languageChanged()
+                println("item selected ${event}")
+            }
+
+            // editor
+            editor.setOneLineMode(false)
+
+            editor.document.addDocumentListener(object : DocumentListener {
+                override fun documentChanged(event: DocumentEvent) {
+                    script?.raw = event.document.text
+                }
+            })
+
+            editor.addFocusListener(object : FocusListener {
+
+                override fun focusGained(e: FocusEvent?) {
+                    // do nothing
+                }
+
+                override fun focusLost(e: FocusEvent?) {
+                    // todo notify parent
+                }
+
+            })
+
+            add(headerPanel, BorderLayout.NORTH)
+            add(editor, BorderLayout.CENTER)
+        }
+
+        fun setScriptData(s: MKData) {
+            script = s
+            refresh()
+        }
+
+        fun getScriptData(): MKData? {
+            return script
+        }
+
+        fun refresh() {
+            cmb.item = script?.language
+            editor.text = script?.raw.toString()
+        }
+
+        // todo highlight
+        fun languageChanged() {
+
+        }
+
+
+    }
+
 
 }

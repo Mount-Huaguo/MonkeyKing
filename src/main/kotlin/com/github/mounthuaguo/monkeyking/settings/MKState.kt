@@ -10,19 +10,31 @@ import java.net.URL
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
-data class MKData(val language: String, val raw: String) {
+data class MKData(var language: String, var raw: String) {
 
     var id: String = ""
+    var version: String = ""
     var title: String = ""
     var description: String = ""
     var action: String = ""
     var topic: String = ""
     var requires: List<ScriptRequire> = listOf()
     var menus: List<String> = listOf()
+    var isValid = false
 
     init {
         parse()
-        check()
+        isValid = try {
+            check()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // unnamed
+    constructor(language: String) : this(language, "") {
+        title = "unnamed"
     }
 
     private fun check() {
@@ -41,7 +53,6 @@ data class MKData(val language: String, val raw: String) {
         if (title.length > 256) {
             throw Exception("script title is too long")
         }
-
     }
 
     private fun parse() {
@@ -67,6 +78,7 @@ data class MKData(val language: String, val raw: String) {
         title = parseField(headers, "title")
         description = parseField(headers, "description")
         action = parseField(headers, "action")
+        version = parseField(headers, "version")
         topic = parseField(headers, "topic")
         menus = parseFields(headers, "menu")
         val requireRaw = parseFields(headers, "require")

@@ -141,14 +141,6 @@ class BrowserDialogJComponent() {
     }
 
 
-//    private class ListCell(value: Data, index: Int, selected: Boolean): Component() {
-//        private val label
-//        init {
-//
-//        }
-//    }
-
-
     private class ScriptRepoParser(val txt: String) {
 
         private val scripts = mutableListOf<Data>()
