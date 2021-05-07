@@ -1,20 +1,26 @@
 package com.github.mounthuaguo.monkeyking.settings
 
+import com.github.mounthuaguo.monkeyking.ui.BrowserDialog
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.table.JBTable
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.awt.Window
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 import javax.swing.table.AbstractTableModel
+
 
 class MKConfigureComponent {
 
@@ -77,7 +83,10 @@ class MKConfigureComponent {
 
         val action2: AnAction = object : DumbAwareAction(AllIcons.Actions.Search) {
             override fun actionPerformed(e: AnActionEvent) {
-                println(e)
+                println("e.project, ${e.project}")
+                if (BrowserDialog().showAndGet()) {
+                    // todo
+                }
             }
         }
 
@@ -104,6 +113,17 @@ class MKConfigureComponent {
 
 
 //        println("ServiceManager.getService(ProjectService::class.java) ${ServiceManager.getService(ProjectService::class.java)}")
+
+
+//        val projects: Array<Project> = ProjectManager.getInstance().openProjects
+//        var activeProject: Project? = null
+//        for (project in projects) {
+//            val window: Window? = WindowManager.getInstance().suggestParentWindow(project)
+//            if (window != null && window.isActive) {
+//                activeProject = project
+//            }
+//        }
+//        println("activeProject ${activeProject}")
 
     }
 
