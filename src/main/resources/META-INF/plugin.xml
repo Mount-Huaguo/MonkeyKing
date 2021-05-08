@@ -11,10 +11,15 @@
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ApplicationService"/>
         <projectService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ProjectService"/>
+
+        <postStartupActivity implementation="com.github.mounthuaguo.monkeyking.ShortcutStartupActivity"/>
+
+        <customizableActionGroupProvider
+                implementation="com.github.mounthuaguo.monkeyking.MKCustomizableActionGroupProvider"
+                order="first"/>
     </extensions>
 
-
-    <!--    -->
+    <!--  PersistentState  -->
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.MKStateService"/>
     </extensions>
@@ -62,5 +67,14 @@
                     icon="AllIcons.General.Modified"
                     factoryClass="com.github.mounthuaguo.monkeyking.ui.ToolWindowFactory"/>
     </extensions>
+
+    <!--  components  -->
+    <application-components>
+        <!-- Add your application components here -->
+        <component>
+            <implementation-class>com.github.mounthuaguo.monkeyking.services.ApplicationService</implementation-class>
+        </component>
+    </application-components>
+
 
 </idea-plugin>

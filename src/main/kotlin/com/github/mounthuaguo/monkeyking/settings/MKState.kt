@@ -4,7 +4,6 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
-import com.intellij.util.xmlb.XmlSerializerUtil
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.net.URL
 import java.util.*
@@ -26,7 +25,7 @@ data class ScriptData(var language: String = "lua", var raw: String = "") {
 
     companion object {
         @JvmStatic
-        private var _env = JsePlatform.standardGlobals()
+        private val luaEnv = JsePlatform.standardGlobals()
     }
 
     init {
@@ -55,7 +54,7 @@ data class ScriptData(var language: String = "lua", var raw: String = "") {
         }
 
         try {
-            _env.load(raw)
+            luaEnv.load(raw)
         } catch (e: Exception) {
             errMsg = "Syntax error"
             return false
@@ -96,9 +95,11 @@ data class ScriptData(var language: String = "lua", var raw: String = "") {
         topic = parseField(headers, "topic")
         menus = parseFields(headers, "menu")
         val requireRaw = parseFields(headers, "require")
+        println("parse $name, $description, $action, $version, $topic, $menus, $requireRaw")
         val rs = mutableListOf<ScriptRequire>()
         for (uri in requireRaw) {
             // TODO use async request
+            println("requireRaw.uri $uri")
             val raw = URL(uri).readText()
             rs.add(ScriptRequire(uri, raw))
         }
@@ -136,12 +137,15 @@ data class ScriptData(var language: String = "lua", var raw: String = "") {
 
 
     private fun parseRow(row: String, field: String): String {
-        var prefix = "//"
-        if (language == "lua") {
-            prefix = "--"
+        val prefix = if (language == "lua") {
+            "--"
+        } else {
+            "//"
         }
         val pattern = "^\\s*$prefix\\s*@$field\\s+(.*)$"
-        return Regex(pattern).find(row)?.value.toString().trim()
+        val match = Regex(pattern).find(row) ?: return ""
+        val (fieldValue) = match.destructured
+        return fieldValue
     }
 
 }
@@ -163,7 +167,32 @@ class MKStateService : PersistentStateComponent<MKState> {
     }
 
     override fun loadState(state: MKState) {
-        XmlSerializerUtil.copyBean(state, mkState)
+        //        XmlSerializerUtil.copyBean(state, mkState)
+
+        // for tests
+        mkState.scripts = listOf(
+            ScriptData(
+                "lua", """      
+-- @start 
+-- @name Bson Object ID
+-- @description Bson object id method suit
+-- @action menu
+-- @menu Insert Object ID
+-- @menu Copy Timestap From Object ID
+-- @end 
+
+if menu == 'Insert Object ID'
+    return 'xxxx'
+end 
+
+
+if menu == 'Copy Timestap From Object ID'
+    return '102837464'
+end
+
+        """.trimIndent()
+            )
+        )
     }
 
     override fun getState(): MKState {
@@ -173,7 +202,30 @@ class MKStateService : PersistentStateComponent<MKState> {
 
     fun getScripts(): List<ScriptData> {
         println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
-        return mkState.scripts
+//        return mkState.scripts
+        return listOf(
+            ScriptData(
+                "lua", """      
+-- @start 
+-- @name Bson Object ID
+-- @description Bson object id method suit
+-- @action menu
+-- @menu Insert Object ID
+-- @menu Copy Timestap From Object ID
+-- @end 
+
+if menu == 'Insert Object ID'
+    return 'xxxx'
+end 
+
+
+if menu == 'Copy Timestap From Object ID'
+    return '102837464'
+end
+
+        """.trimIndent()
+            )
+        )
     }
 
     fun setScripts(scripts: List<ScriptData>) {

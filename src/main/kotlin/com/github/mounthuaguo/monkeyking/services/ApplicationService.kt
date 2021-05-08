@@ -1,6 +1,7 @@
 package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.settings.MKStateService
 import com.github.mounthuaguo.monkeyking.settings.ScriptData
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.components.ServiceManager
@@ -48,7 +49,7 @@ class ApplicationService {
         val group = actionManager.getAction(MKBundle.message("actionGroupId")) as DefaultActionGroup
 
         for (script in scripts) {
-            if (script.action != "action") {
+            if (script.action != "menu") {
                 continue
             }
             for (menu in script.menus) {
