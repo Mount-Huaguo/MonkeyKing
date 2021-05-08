@@ -1,7 +1,6 @@
 package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MKBundle
-import com.github.mounthuaguo.monkeyking.settings.MKStateService
 import com.github.mounthuaguo.monkeyking.settings.ScriptData
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.components.ServiceManager
@@ -12,6 +11,9 @@ import org.luaj.vm2.lib.jse.JsePlatform
 
 class ApplicationService {
 
+    private val actionGroupId = MKBundle.message("actionGroupId")
+    private val defaultActions = mutableListOf<String>()
+
     init {
         println(MKBundle.message("applicationService"))
     }
@@ -19,6 +21,24 @@ class ApplicationService {
     companion object {
         fun getInstance(): ApplicationService {
             return ServiceManager.getService(ApplicationService::class.java)
+        }
+    }
+
+    fun storeDefaultActions() {
+        if (defaultActions.size > 0) {
+            return
+        }
+        val actionManager = ActionManager.getInstance()
+        val group = actionManager.getAction(actionGroupId) as DefaultActionGroup
+        val actions = group.childActionsOrStubs
+
+        for (action in actions) {
+            if (action is Separator) {
+                continue
+            }
+            if (action.templatePresentation.text != "") {
+                defaultActions.add(action.templatePresentation.text)
+            }
         }
     }
 
@@ -40,8 +60,17 @@ class ApplicationService {
 
     private fun removeAllScriptActions() {
         val actionManager = ActionManager.getInstance()
-        val group = actionManager.getAction(MKBundle.message("actionGroupId")) as DefaultActionGroup
-        group.removeAll()
+        val group = actionManager.getAction(actionGroupId) as DefaultActionGroup
+        val actions = group.childActionsOrStubs
+        for (action in actions) {
+            if (action is Separator) {
+                continue
+            }
+            if (defaultActions.contains(action.templatePresentation.text)) {
+                continue
+            }
+            group.remove(action)
+        }
     }
 
     private fun registerAllActions(scripts: List<ScriptData>) {

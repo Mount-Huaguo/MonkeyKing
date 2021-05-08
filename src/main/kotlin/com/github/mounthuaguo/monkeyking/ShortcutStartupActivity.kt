@@ -19,7 +19,9 @@ class ShortcutStartupActivity : StartupActivity {
     }
 
     private fun registerActions() {
-        ApplicationService.getInstance().reload(MKStateService.getInstance().getScripts())
+        val applicationService = ApplicationService.getInstance()
+        applicationService.storeDefaultActions()
+        applicationService.reload(MKStateService.getInstance().getScripts())
     }
 
 }
