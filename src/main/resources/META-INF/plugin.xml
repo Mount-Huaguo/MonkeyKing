@@ -16,7 +16,7 @@
 
     <!--    -->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.MKState"/>
+        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.MKStateService"/>
     </extensions>
 
     <!--  listeners  -->

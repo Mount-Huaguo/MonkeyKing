@@ -5,51 +5,71 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
+import org.luaj.vm2.lib.jse.JsePlatform
 import java.net.URL
+import java.util.*
 
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
-data class MKData(var language: String, var raw: String) {
+data class ScriptData(var language: String = "lua", var raw: String = "") {
 
-    var id: String = ""
     var version: String = ""
-    var title: String = ""
+    var name: String = ""
     var description: String = ""
     var action: String = ""
     var topic: String = ""
     var requires: List<ScriptRequire> = listOf()
     var menus: List<String> = listOf()
 
+    private var errMsg = ""
+
+    companion object {
+        @JvmStatic
+        private var _env = JsePlatform.standardGlobals()
+    }
+
     init {
         parse()
     }
 
     // unnamed
-    constructor(language: String) : this(language, "") {
-        title = "unnamed"
+    constructor(language: String = "lua") : this(language, "") {
+        name = "unnamed"
     }
 
     fun isValid(): Boolean {
+        errMsg = ""
         if (language != "lua" && language != "js") {
+            errMsg = "Language only support lua and js."
             return false
         }
         if (action != "menu" && action != "template" && action != "listener") {
+            errMsg = "Action only support menu,template and listener"
             return false
         }
-        if (id == "") {
+        if (Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
+            errMsg =
+                "Name can't be empty,less than 256 characters,support alpha,digit,dash,whitespace,underscore."
             return false
         }
-        if (title == "") {
+
+        try {
+            _env.load(raw)
+        } catch (e: Exception) {
+            errMsg = "Syntax error"
             return false
         }
-        if (title.length > 256) {
-            return false
-        }
+
         return true
     }
 
+    fun genMenuId(menu: String): String {
+        return (name + "_" + menu).replace(" ", "_")
+    }
+
     private fun parse() {
+        // scan headers
         // find start and end comment
         val lines = raw.split("\n")
         val headers = mutableListOf<String>()
@@ -68,8 +88,8 @@ data class MKData(var language: String, var raw: String) {
             headers.add(line)
         }
 
-        id = parseField(headers, "id")
-        title = parseField(headers, "title")
+        // parse headers
+        name = parseField(headers, "name")
         description = parseField(headers, "description")
         action = parseField(headers, "action")
         version = parseField(headers, "version")
@@ -88,7 +108,7 @@ data class MKData(var language: String, var raw: String) {
     fun allMenus(): List<ScriptMenu> {
         val r = mutableListOf<ScriptMenu>()
         for (menu in menus) {
-            r.add(ScriptMenu(id + menu, menu))
+            r.add(ScriptMenu(genMenuId(menu), menu))
         }
         return r
     }
@@ -126,32 +146,40 @@ data class MKData(var language: String, var raw: String) {
 
 }
 
+class MKState {
+    var scripts: List<ScriptData> = listOf()
+    var timestamp: Long = 0
+}
 
 @State(name = "com.github.mounthuaguo.monkeyking", storages = [Storage("monkeyking.xml")])
-class MKState : PersistentStateComponent<MKState> {
+class MKStateService : PersistentStateComponent<MKState> {
 
-    private var scripts: List<MKData> = listOf()
-
-    fun getScripts(): List<MKData> {
-        return scripts
-    }
-
-    fun setScript(ss: List<MKData>) {
-        scripts = ss
-    }
+    var mkState = MKState()
 
     companion object {
-        fun getInstance(): MKState {
-            return ServiceManager.getService(MKState::class.java)
+        fun getInstance(): MKStateService {
+            return ServiceManager.getService(MKStateService::class.java)
         }
     }
 
     override fun loadState(state: MKState) {
-        XmlSerializerUtil.copyBean(state, this)
+        XmlSerializerUtil.copyBean(state, mkState)
     }
 
     override fun getState(): MKState {
-        return this
+        println("PersistentStateComponent getState $mkState")
+        return mkState
+    }
+
+    fun getScripts(): List<ScriptData> {
+        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
+        return mkState.scripts
+    }
+
+    fun setScripts(scripts: List<ScriptData>) {
+        mkState.scripts = scripts
+        mkState.timestamp = Date().time
+        println("PersistentStateComponent setScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
     }
 
 }

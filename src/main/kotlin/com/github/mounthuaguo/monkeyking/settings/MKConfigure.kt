@@ -1,6 +1,7 @@
 package com.github.mounthuaguo.monkeyking.settings
 
 import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.services.ApplicationService
 import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 
@@ -9,7 +10,7 @@ class MKConfigure : Configurable {
 
     private val component = MKConfigureComponent()
 
-    override fun createComponent(): JComponent? {
+    override fun createComponent(): JComponent {
         return component.getPanel()
     }
 
@@ -19,12 +20,12 @@ class MKConfigure : Configurable {
 
     override fun apply() {
         component.saveScripts()
-//        MKState.getInstance().state
-        // todo process state
+        // reload listener and actions
+        ApplicationService.getInstance().reload(MKStateService.getInstance().getScripts())
     }
 
     override fun getDisplayName(): String {
-        return MKBundle.message("configName")
+        return MKBundle.message("configureName")
     }
 
 }

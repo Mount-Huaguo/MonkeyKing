@@ -29,8 +29,8 @@ class MKConfigureComponent {
 
     private val mainPanel: JPanel = JBPanel<JBPanel<*>>();
     private val scriptTable: JBTable = JBTable()
-    private val scripts = mutableListOf<MKData>()
-    private val state = MKState.getInstance()
+    private val scripts = mutableListOf<ScriptData>()
+    private val state = MKStateService.getInstance()
     private val editor = EditorPanel() {
         // todo lose focus
     }
@@ -65,7 +65,7 @@ class MKConfigureComponent {
 
             override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
                 when (columnIndex) {
-                    0 -> return scripts[rowIndex].title
+                    0 -> return scripts[rowIndex].name
                     1 -> return scripts[rowIndex].language
                     2 -> return scripts[rowIndex].description
                 }
@@ -91,7 +91,7 @@ class MKConfigureComponent {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
 
-                scripts.add(MKData("lua"))
+                scripts.add(ScriptData("lua"))
                 scriptTable.removeRowSelectionInterval(selectRow, selectRow)
                 refreshTable()
                 scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
@@ -155,18 +155,18 @@ class MKConfigureComponent {
     }
 
     fun saveScripts() {
-//        val m = mutableMapOf<String, Unit>()
-//        for (s in scripts) {
-//            if (!s.isValid()) {
-//                return
-//            }
-//            // id duplicate
-//            if (m.containsKey(s.id)) {
-//                return
-//            }
-//            m[s.id] = Unit
-//        }
-        state.setScript(scripts)
+        val m = mutableMapOf<String, Unit>()
+        for (s in scripts) {
+            if (!s.isValid()) {
+                return
+            }
+            // name duplicate
+            if (m.containsKey(s.name)) {
+                return
+            }
+            m[s.name] = Unit
+        }
+        state.setScripts(scripts)
         state.state
     }
 
@@ -191,7 +191,7 @@ class MKConfigureComponent {
     //
     private class EditorPanel(focusLostFunc: () -> Unit) : JBPanel<JBPanel<*>>(BorderLayout()) {
 
-        var script: MKData? = null
+        var script: ScriptData? = null
 
         private val editor = EditorTextField()
         private val cmb = ComboBox<String>()
@@ -235,12 +235,12 @@ class MKConfigureComponent {
             add(editor, BorderLayout.CENTER)
         }
 
-        fun setScriptData(s: MKData) {
+        fun setScriptData(s: ScriptData) {
             script = s
             refresh()
         }
 
-        fun getScriptData(): MKData? {
+        fun getScriptData(): ScriptData? {
             return script
         }
 
