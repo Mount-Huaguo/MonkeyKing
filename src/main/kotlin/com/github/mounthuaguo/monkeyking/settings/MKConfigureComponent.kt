@@ -13,11 +13,13 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.components.BorderLayoutPanel
@@ -91,7 +93,19 @@ class MKConfigureComponent {
 
         val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
         // add
-        val action1: AnAction = object : DumbAwareAction(AllIcons.General.Add) {
+
+        val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
+            override fun actionPerformed(e: AnActionEvent) {
+                println("action1 actionPerformed ${e}")
+
+                scripts.add(ScriptData("lua"))
+                scriptTable.removeRowSelectionInterval(selectRow, selectRow)
+                refreshTable()
+                scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
+            }
+        }
+
+        val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
 
@@ -103,36 +117,60 @@ class MKConfigureComponent {
         }
 
         // browser
-        val action2: AnAction = object : DumbAwareAction(AllIcons.Actions.Show) {
+        val browserAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Show) {
             override fun actionPerformed(e: AnActionEvent) {
                 println("e.project, ${e.project}")
                 if (BrowserDialog().showAndGet()) {
                     // todo
+                    println("dialog closed")
                 }
             }
         }
 
-        val action4: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
+        val copyAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Copy) {
             override fun actionPerformed(e: AnActionEvent) {
                 println(e)
             }
         }
 
-        val ag = DefaultActionGroup(action1, action2, action4)
-        toolbarDecorator.setActionGroup(ag)
+        val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
+            override fun actionPerformed(e: AnActionEvent) {
+                println(e)
+            }
+        }
+
+
+        val newActionGroup = DefaultActionGroup(newLuaAction, newJsAction)
+        newActionGroup.templatePresentation.icon = AllIcons.General.Add
+        newActionGroup.isPopup = true
+
+
+        val addAction: AnAction = object : DumbAwareAction(AllIcons.General.Add) {
+            override fun actionPerformed(e: AnActionEvent) {
+                val popup = JBPopupFactory.getInstance().createActionGroupPopup(
+                    null,
+                    newActionGroup,
+                    e.dataContext,
+                    JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
+                    false
+                );
+                println(" toolbarDecorator.actionsPanel.position, ${toolbarDecorator.actionsPanel.position}")
+                popup.show(RelativePoint.getSouthWestOf(toolbarDecorator.actionsPanel))
+            }
+        }
+
+        val actionGroup = DefaultActionGroup(addAction, browserAction, copyAction, removeAction)
+        actionGroup.isPopup = true
+        toolbarDecorator.setActionGroup(actionGroup)
         toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
 
         val tablePanel = toolbarDecorator.createPanel()
         tablePanel.minimumSize = Dimension(200, 600)
 
-
         val splitter = JBSplitter()
         splitter.firstComponent = tablePanel
         splitter.secondComponent = editor
         mainPanel.add(splitter, BorderLayout.CENTER)
-
-//        mainPanel.add(tablePanel, GridConstraints(0, 0, 1, 1, 0, 3, 1 or 2, 1 or 2, null, null, null, 0, false))
-//        mainPanel.add(editor, GridConstraints(0, 1, 1, 1, 0, 3, 1 or 2, 1 or 2, null, null, null, 0, false))
     }
 
     private fun reselectTable() {
