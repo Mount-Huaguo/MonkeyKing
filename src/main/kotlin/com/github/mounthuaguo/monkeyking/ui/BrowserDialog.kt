@@ -9,6 +9,7 @@ import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTextField
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.GridLayout
 import java.net.URL
 import javax.swing.JButton
@@ -92,6 +93,8 @@ class BrowserDialogJComponent() {
 
         panel.add(leftPanel)
         panel.add(displayPanel)
+        panel.minimumSize = Dimension(600, 400)
+        panel.preferredSize = Dimension(800, 600)
 
         queryScripts()
     }
@@ -104,10 +107,10 @@ class BrowserDialogJComponent() {
     // todo async
     // query script
     private fun queryScripts() {
-        val txt = URL(MKBundle.message("scriptsRepository") + MKBundle.message("scriptsRepoFile")).readText()
-        repo = ScriptRepoParser(txt).getScripts()
-        refreshList()
 
+//        val txt = URL(MKBundle.message("scriptsRepository") + MKBundle.message("scriptsRepoFile")).readText()
+//        repo = ScriptRepoParser(txt).getScripts()
+//        refreshList()
     }
 
     private fun refreshList() {

@@ -1,6 +1,7 @@
 package com.github.mounthuaguo.monkeyking
 
 import com.github.mounthuaguo.monkeyking.services.ApplicationService
+import com.github.mounthuaguo.monkeyking.services.ProjectService
 import com.github.mounthuaguo.monkeyking.settings.MKStateService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity

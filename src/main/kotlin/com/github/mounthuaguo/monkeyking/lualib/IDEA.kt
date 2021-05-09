@@ -20,12 +20,13 @@ import org.luaj.vm2.lib.OneArgFunction
 import org.luaj.vm2.lib.ThreeArgFunction
 import org.luaj.vm2.lib.TwoArgFunction
 import org.luaj.vm2.lib.ZeroArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import java.awt.datatransfer.StringSelection
 
 class IDEA(
     val scriptName: String = "Monkey King",
     val project: Project?,
-    val event: AnActionEvent?
+    val actionEvent: AnActionEvent?
 ) : TwoArgFunction() {
 
     override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
@@ -51,6 +52,15 @@ class IDEA(
         idea["event"] = event
 
         arg2["idea"] = idea
+
+        project?.let {
+            arg2["project"] = CoerceJavaToLua.coerce(project)
+        }
+
+        actionEvent?.let {
+            arg2["event"] = CoerceJavaToLua.coerce(actionEvent)
+        }
+
         arg2["util"]["loaded"]["idea"] = idea
         return idea
     }
@@ -104,9 +114,9 @@ class IDEA(
 
     inner class Selection() : ZeroArgFunction() {
         override fun call(): LuaValue {
-            event ?: return LuaTable()
+            actionEvent ?: return LuaTable()
 
-            val editor = event.getRequiredData(LangDataKeys.EDITOR)
+            val editor = actionEvent.getRequiredData(LangDataKeys.EDITOR)
             val selectionModel: SelectionModel = editor.selectionModel
             val t = LuaTable()
             selectionModel.selectedText?.let {
@@ -123,8 +133,8 @@ class IDEA(
     inner class DocumentWrap() : ZeroArgFunction() {
         override fun call(): LuaValue {
             val t = LuaTable()
-            event ?: return t
-            val editor = event.getRequiredData(LangDataKeys.EDITOR)
+            actionEvent ?: return t
+            val editor = actionEvent.getRequiredData(LangDataKeys.EDITOR)
             val document: Document = editor.document
             t["text"] = document.text
             t["textLength"] = document.textLength
@@ -139,8 +149,8 @@ class IDEA(
                 return try {
                     val start = arg1.checkint()
                     val end = arg2.checkint()
-                    val repl = arg3.checkstring().toString()
-                    doc.replaceString(start, end, repl)
+                    val replace = arg3.checkstring().toString()
+                    doc.replaceString(start, end, replace)
                     valueOf(true)
                 } catch (e: Exception) {
                     e.printStackTrace()
