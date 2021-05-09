@@ -6,20 +6,24 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.EditorTextField
+import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.components.BorderLayoutPanel
+import org.jetbrains.annotations.NotNull
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.event.FocusEvent
-import java.awt.event.FocusListener
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
 import javax.swing.table.AbstractTableModel
@@ -27,13 +31,11 @@ import javax.swing.table.AbstractTableModel
 
 class MKConfigureComponent {
 
-    private val mainPanel: JPanel = JBPanel<JBPanel<*>>();
+    private val mainPanel: JPanel = BorderLayoutPanel()
     private val scriptTable: JBTable = JBTable()
     private val scripts = mutableListOf<ScriptData>()
     private val state = MKStateService.getInstance()
-    private val editor = EditorPanel() {
-        // todo lose focus
-    }
+    private val editor = EditorPanel()
     private var selectRow = -1;
 
     init {
@@ -51,7 +53,7 @@ class MKConfigureComponent {
             }
 
             override fun getColumnCount(): Int {
-                return 3
+                return 1
             }
 
             override fun getColumnName(index: Int): String {
@@ -73,11 +75,13 @@ class MKConfigureComponent {
             }
 
         }
-        scriptTable.rowHeight = 24
+
+        scriptTable.rowHeight = 60
         scriptTable.dragEnabled = false
         scriptTable.isStriped = true
         scriptTable.selectionModel = SingleSelectionModel()
         scriptTable.setShowGrid(false)
+        scriptTable.autoscrolls = true
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${scriptTable.selectedRow}")
@@ -108,13 +112,6 @@ class MKConfigureComponent {
             }
         }
 
-        // edit
-        val action3: AnAction = object : DumbAwareAction(AllIcons.Actions.Edit) {
-            override fun actionPerformed(e: AnActionEvent) {
-                println(e)
-            }
-        }
-
         val action4: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
             override fun actionPerformed(e: AnActionEvent) {
                 println(e)
@@ -123,16 +120,19 @@ class MKConfigureComponent {
 
         val ag = DefaultActionGroup(action1, action2, action4)
         toolbarDecorator.setActionGroup(ag)
-        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.RIGHT)
-
+        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
 
         val tablePanel = toolbarDecorator.createPanel()
-        tablePanel.minimumSize = Dimension(100, 500)
-        tablePanel.maximumSize = Dimension(1200, 600)
+        tablePanel.minimumSize = Dimension(200, 600)
 
-        mainPanel.layout = BorderLayout()
-        mainPanel.add(tablePanel, BorderLayout.NORTH)
-        mainPanel.add(editor, BorderLayout.CENTER)
+
+        val splitter = JBSplitter()
+        splitter.firstComponent = tablePanel
+        splitter.secondComponent = editor
+        mainPanel.add(splitter, BorderLayout.CENTER)
+
+//        mainPanel.add(tablePanel, GridConstraints(0, 0, 1, 1, 0, 3, 1 or 2, 1 or 2, null, null, null, 0, false))
+//        mainPanel.add(editor, GridConstraints(0, 1, 1, 1, 0, 3, 1 or 2, 1 or 2, null, null, null, 0, false))
     }
 
     private fun reselectTable() {
@@ -151,6 +151,7 @@ class MKConfigureComponent {
     }
 
     fun refreshTable() {
+//        scriptTable.fire
         scriptTable.repaint()
     }
 
@@ -189,50 +190,30 @@ class MKConfigureComponent {
 
 
     //
-    private class EditorPanel(focusLostFunc: () -> Unit) : JBPanel<JBPanel<*>>(BorderLayout()) {
+    private class EditorPanel() : JBPanel<JBPanel<*>>(BorderLayout()) {
 
         var script: ScriptData? = null
 
-        private val editor = EditorTextField()
-        private val cmb = ComboBox<String>()
+        private val editor: Editor
+        private val document: Document
 
         init {
-            val headerPanel = JBPanel<JBPanel<*>>(BorderLayout())
-            val lang = JBLabel("Language")
-            headerPanel.add(lang, BorderLayout.WEST)
-            cmb.addItem("lua")
-            cmb.addItem("js")
-            headerPanel.add(cmb, BorderLayout.CENTER)
-
-            cmb.addItemListener { event ->
-                script?.language = event.item.toString()
-                languageChanged()
-                println("item selected ${event}")
-            }
-
             // editor
-            editor.setOneLineMode(false)
-
-            editor.document.addDocumentListener(object : DocumentListener {
+            val factory = EditorFactory.getInstance()
+            document = factory.createDocument("")
+            document.setReadOnly(false)
+            document.addDocumentListener(object : DocumentListener {
                 override fun documentChanged(event: DocumentEvent) {
-                    script?.raw = event.document.text
+//                    sourceTextHasChanged(event.document.text)
                 }
             })
 
-            editor.addFocusListener(object : FocusListener {
+            editor = createEditor("", document)
 
-                override fun focusGained(e: FocusEvent?) {
-                    // do nothing
-                }
 
-                override fun focusLost(e: FocusEvent?) {
-                    focusLostFunc()
-                }
-
-            })
-
-            add(headerPanel, BorderLayout.NORTH)
-            add(editor, BorderLayout.CENTER)
+//            editor.setOneLineMode(false)
+//            editor.autoscrolls = true
+            add(editor.component, BorderLayout.CENTER)
         }
 
         fun setScriptData(s: ScriptData) {
@@ -245,14 +226,38 @@ class MKConfigureComponent {
         }
 
         fun refresh() {
-            cmb.item = script?.language
-            editor.text = script?.raw.toString()
+            val txt = script?.raw.toString() + script?.raw.toString() + script?.raw.toString() + script?.raw.toString()
+
+            document.setText(txt)
+
+//            editor.text =
+//                script?.raw.toString() + script?.raw.toString() + script?.raw.toString() + script?.raw.toString()
         }
 
-        // todo highlight
-        fun languageChanged() {
+        private fun createEditor(filename: String, document: Document): Editor {
+            val fileExtension: String = FileUtilRt.getExtension(filename)
+            val editor = EditorFactory.getInstance().createEditor(
+                document,
+                null,
+                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+                false
+            )
+            editor.component.minimumSize = Dimension(200, 600)
+            editor.settings.isLineNumbersShown = false
+            editor.settings.isLineMarkerAreaShown = false
+            editor.settings.isFoldingOutlineShown = false
+            return editor
+        }
+
+    }
+
+
+    inner class MyEditor(text: @NotNull String) : EditorTextField(text) {
+
+        init {
 
         }
+
     }
 
 

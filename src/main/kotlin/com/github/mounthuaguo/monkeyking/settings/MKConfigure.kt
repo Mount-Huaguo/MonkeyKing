@@ -6,7 +6,7 @@ import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 
 
-class MKConfigure : Configurable {
+class MKConfigure : Configurable, Configurable.NoScroll {
 
     private val component = MKConfigureComponent()
 

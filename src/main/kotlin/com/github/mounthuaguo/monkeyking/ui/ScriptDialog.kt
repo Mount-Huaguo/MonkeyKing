@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBLabel
 import org.jetbrains.annotations.Nullable
 import java.awt.BorderLayout
