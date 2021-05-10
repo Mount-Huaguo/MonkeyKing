@@ -5,21 +5,21 @@ import com.github.mounthuaguo.monkeyking.services.ApplicationService
 import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 
-
 class MKConfigure : Configurable, Configurable.NoScroll {
 
     private val component = MKConfigureComponent()
 
     override fun createComponent(): JComponent {
-        return component.getPanel()
+        return component
     }
 
     override fun isModified(): Boolean {
-        return !component.isEqual()
+//        return !component.isEqual()
+        return true
     }
 
     override fun apply() {
-        component.saveScripts()
+//        component.saveScripts()
         // reload listener and actions
         ApplicationService.getInstance().reload(MKStateService.getInstance().getScripts())
     }

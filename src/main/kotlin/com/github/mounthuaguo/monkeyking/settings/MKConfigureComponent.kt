@@ -2,6 +2,7 @@ package com.github.mounthuaguo.monkeyking.settings
 
 import com.github.mounthuaguo.monkeyking.ui.BrowserDialog
 import com.intellij.icons.AllIcons
+import com.intellij.ide.plugins.newui.PluginSearchTextField
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -15,29 +16,41 @@ import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.ui.EditorTextField
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBPanel
+import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.components.BorderLayoutPanel
-import org.jetbrains.annotations.NotNull
 import java.awt.BorderLayout
 import java.awt.Dimension
-import javax.swing.JPanel
+import javax.swing.JTabbedPane
 import javax.swing.ListSelectionModel
 
 
-class MKConfigureComponent {
+class MKConfigureComponent : BorderLayoutPanel() {
+    private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
+    private val browserPanel = MKConfigureBrowserComponent()
+    private val installedPanel = MKConfigureInstalledComponent()
 
-    private val mainPanel: JPanel = BorderLayoutPanel()
+    init {
+        tabbedPane.addTab("Installed", installedPanel)
+        tabbedPane.addTab("Browser", browserPanel)
+        add(tabbedPane, BorderLayout.CENTER)
+    }
+}
+
+class MKConfigureInstalledComponent : BorderLayoutPanel() {
+
     private val scriptTable: JBTable = JBTable()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = MKStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
+
+    private var searchBar = PluginSearchTextField()
 
     init {
 
@@ -45,10 +58,8 @@ class MKConfigureComponent {
         scripts.addAll(state.getScripts())
 
         println("state.getScripts(), ${state.getScripts()}")
-        scriptTable.tableHeader = null;
-//        scriptTable.setShowColumns(true)
+        scriptTable.setShowColumns(true)
         scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
-        scriptTable.setDefaultRenderer(ScriptTableModelControlCell::class.java, ScriptTableModelControlCell())
         scriptTable.model = ScriptTableModel(scripts)
         scriptTable.rowHeight = 80
         scriptTable.dragEnabled = false
@@ -56,7 +67,7 @@ class MKConfigureComponent {
         scriptTable.selectionModel = SingleSelectionModel()
         scriptTable.setShowGrid(false)
         scriptTable.autoscrolls = true
-        scriptTable.columnModel.getColumn(1).width = 40;
+
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${scriptTable.selectedRow}")
@@ -142,17 +153,13 @@ class MKConfigureComponent {
         val splitter = JBSplitter()
         splitter.firstComponent = tablePanel
         splitter.secondComponent = editor
-        mainPanel.add(splitter, BorderLayout.CENTER)
+        add(splitter, BorderLayout.CENTER)
     }
 
     private fun reselectTable() {
         selectRow = scriptTable.selectedRow
         val d = scripts[selectRow]
         editor.setScriptData(d)
-    }
-
-    fun getPanel(): JPanel {
-        return mainPanel
     }
 
     private fun processChangedScript() {
@@ -214,15 +221,10 @@ class MKConfigureComponent {
             document.setReadOnly(false)
             document.addDocumentListener(object : DocumentListener {
                 override fun documentChanged(event: DocumentEvent) {
-//                    sourceTextHasChanged(event.document.text)
                 }
             })
 
             editor = createEditor("", document)
-
-
-//            editor.setOneLineMode(false)
-//            editor.autoscrolls = true
             add(editor.component, BorderLayout.CENTER)
         }
 
@@ -237,11 +239,7 @@ class MKConfigureComponent {
 
         fun refresh() {
             val txt = script?.raw.toString() + script?.raw.toString() + script?.raw.toString() + script?.raw.toString()
-
             document.setText(txt)
-
-//            editor.text =
-//                script?.raw.toString() + script?.raw.toString() + script?.raw.toString() + script?.raw.toString()
         }
 
         private fun createEditor(filename: String, document: Document): Editor {
@@ -260,15 +258,34 @@ class MKConfigureComponent {
         }
 
     }
+}
 
+class MKConfigureBrowserComponent : BorderLayoutPanel() {
 
-    inner class MyEditor(text: @NotNull String) : EditorTextField(text) {
+    private val leftPanel = BorderLayoutPanel()
+    private val rightPanel = BorderLayoutPanel()
+    private val searchBar = PluginSearchTextField()
+    private val table = JBTable()
+    private val splitter = JBSplitter()
 
-        init {
+    init {
+        leftPanel.add(searchBar, BorderLayout.NORTH)
+        val scripts = MKStateService.getInstance().getScripts()
+        table.model = ScriptTableModel(scripts.toMutableList())
+        table.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
+        table.rowHeight = 80
+        table.dragEnabled = false
+        table.isStriped = true
+        table.selectionModel = SingleSelectionModel()
+        table.setShowGrid(false)
+        table.autoscrolls = true
 
-        }
+        leftPanel.add(table, BorderLayout.CENTER)
 
+        splitter.firstComponent = leftPanel
+        splitter.secondComponent = rightPanel
+
+        add(splitter, BorderLayout.CENTER)
     }
-
 
 }
