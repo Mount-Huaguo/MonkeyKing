@@ -28,14 +28,13 @@ import java.awt.BorderLayout
 import java.awt.Dimension
 import javax.swing.JPanel
 import javax.swing.ListSelectionModel
-import javax.swing.table.AbstractTableModel
 
 
 class MKConfigureComponent {
 
     private val mainPanel: JPanel = BorderLayoutPanel()
     private val scriptTable: JBTable = JBTable()
-    private val scripts = mutableListOf<ScriptData>()
+    private val scripts = mutableListOf<ScriptModel>()
     private val state = MKStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
@@ -46,44 +45,18 @@ class MKConfigureComponent {
         scripts.addAll(state.getScripts())
 
         println("state.getScripts(), ${state.getScripts()}")
-
-        scriptTable.setShowColumns(true)
-        scriptTable.model = object : AbstractTableModel() {
-
-            override fun getRowCount(): Int {
-                return scripts.size
-            }
-
-            override fun getColumnCount(): Int {
-                return 1
-            }
-
-            override fun getColumnName(index: Int): String {
-                when (index) {
-                    0 -> return "NAME"
-                    1 -> return "LANGUAGE"
-                    2 -> return "DESCRIPTION"
-                }
-                return "exception"
-            }
-
-            override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-                when (columnIndex) {
-                    0 -> return scripts[rowIndex].name
-                    1 -> return scripts[rowIndex].language
-                    2 -> return scripts[rowIndex].description
-                }
-                return "error"
-            }
-
-        }
-
-        scriptTable.rowHeight = 60
+        scriptTable.tableHeader = null;
+//        scriptTable.setShowColumns(true)
+        scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
+        scriptTable.setDefaultRenderer(ScriptTableModelControlCell::class.java, ScriptTableModelControlCell())
+        scriptTable.model = ScriptTableModel(scripts)
+        scriptTable.rowHeight = 80
         scriptTable.dragEnabled = false
         scriptTable.isStriped = true
         scriptTable.selectionModel = SingleSelectionModel()
         scriptTable.setShowGrid(false)
         scriptTable.autoscrolls = true
+        scriptTable.columnModel.getColumn(1).width = 40;
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${scriptTable.selectedRow}")
@@ -98,7 +71,7 @@ class MKConfigureComponent {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
 
-                scripts.add(ScriptData("lua"))
+                scripts.add(ScriptModel("lua"))
                 scriptTable.removeRowSelectionInterval(selectRow, selectRow)
                 refreshTable()
                 scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
@@ -108,8 +81,7 @@ class MKConfigureComponent {
         val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
-
-                scripts.add(ScriptData("lua"))
+                scripts.add(ScriptModel("lua"))
                 scriptTable.removeRowSelectionInterval(selectRow, selectRow)
                 refreshTable()
                 scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
@@ -230,7 +202,7 @@ class MKConfigureComponent {
     //
     private class EditorPanel() : JBPanel<JBPanel<*>>(BorderLayout()) {
 
-        var script: ScriptData? = null
+        var script: ScriptModel? = null
 
         private val editor: Editor
         private val document: Document
@@ -254,12 +226,12 @@ class MKConfigureComponent {
             add(editor.component, BorderLayout.CENTER)
         }
 
-        fun setScriptData(s: ScriptData) {
+        fun setScriptData(s: ScriptModel) {
             script = s
             refresh()
         }
 
-        fun getScriptData(): ScriptData? {
+        fun getScriptData(): ScriptModel? {
             return script
         }
 

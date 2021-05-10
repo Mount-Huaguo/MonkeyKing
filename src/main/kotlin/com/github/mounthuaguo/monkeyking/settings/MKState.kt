@@ -11,7 +11,7 @@ import java.util.*
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
-data class ScriptData(var language: String = "lua", var raw: String = "") {
+data class ScriptModel(var language: String = "lua", var raw: String = "") {
 
     var version: String = ""
     var name: String = ""
@@ -151,7 +151,7 @@ data class ScriptData(var language: String = "lua", var raw: String = "") {
 }
 
 class MKState {
-    var scripts: List<ScriptData> = listOf()
+    var scripts: List<ScriptModel> = listOf()
     var timestamp: Long = 0
 }
 
@@ -171,7 +171,7 @@ class MKStateService : PersistentStateComponent<MKState> {
 
         // for tests
         mkState.scripts = listOf(
-            ScriptData(
+            ScriptModel(
                 "lua", """      
 -- @start 
 -- @name Bson Object ID
@@ -200,11 +200,11 @@ end
         return mkState
     }
 
-    fun getScripts(): List<ScriptData> {
+    fun getScripts(): List<ScriptModel> {
         println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
 //        return mkState.scripts
         return listOf(
-            ScriptData(
+            ScriptModel(
                 "lua", """      
 -- @start 
 -- @name Bson Object ID
@@ -228,7 +228,7 @@ end
         )
     }
 
-    fun setScripts(scripts: List<ScriptData>) {
+    fun setScripts(scripts: List<ScriptModel>) {
         mkState.scripts = scripts
         mkState.timestamp = Date().time
         println("PersistentStateComponent setScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")

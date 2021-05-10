@@ -2,7 +2,7 @@ package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MKBundle
 import com.github.mounthuaguo.monkeyking.lualib.IDEA
-import com.github.mounthuaguo.monkeyking.settings.ScriptData
+import com.github.mounthuaguo.monkeyking.settings.ScriptModel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
@@ -56,19 +56,19 @@ class ApplicationService : Disposable {
         }
     }
 
-    fun reload(scripts: List<ScriptData>) {
+    fun reload(scripts: List<ScriptModel>) {
         reloadListener(scripts)
         reloadActions(scripts)
     }
 
     // reload listener
-    private fun reloadListener(scripts: List<ScriptData>) {
+    private fun reloadListener(scripts: List<ScriptModel>) {
         conn?.let {
             conn!!.disconnect()
         }
-        val createListeners = mutableListOf<ScriptData>()
-        val updateListeners = mutableListOf<ScriptData>()
-        val removeListeners = mutableListOf<ScriptData>()
+        val createListeners = mutableListOf<ScriptModel>()
+        val updateListeners = mutableListOf<ScriptModel>()
+        val removeListeners = mutableListOf<ScriptModel>()
         for (script in scripts) {
             if (script.action != "listener") {
                 continue
@@ -124,7 +124,7 @@ class ApplicationService : Disposable {
     }
 
     // reload actions
-    private fun reloadActions(scripts: List<ScriptData>) {
+    private fun reloadActions(scripts: List<ScriptModel>) {
         removeAllScriptActions()
         registerAllActions(scripts)
     }
@@ -144,7 +144,7 @@ class ApplicationService : Disposable {
         }
     }
 
-    private fun registerAllActions(scripts: List<ScriptData>) {
+    private fun registerAllActions(scripts: List<ScriptModel>) {
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction(MKBundle.message("actionGroupId")) as DefaultActionGroup
 
@@ -175,7 +175,7 @@ class ApplicationService : Disposable {
 }
 
 
-class ScriptAction(private val script: ScriptData, private val menu: String) : AnAction() {
+class ScriptAction(private val script: ScriptModel, private val menu: String) : AnAction() {
 
     override fun actionPerformed(e: AnActionEvent) {
         try {
@@ -194,7 +194,7 @@ class ScriptAction(private val script: ScriptData, private val menu: String) : A
 }
 
 
-class LuaScriptAction(val script: ScriptData, val menu: String, val e: AnActionEvent) {
+class LuaScriptAction(val script: ScriptModel, val menu: String, val e: AnActionEvent) {
 
     fun run() {
         val env = JsePlatform.standardGlobals()
@@ -212,7 +212,7 @@ class LuaScriptAction(val script: ScriptData, val menu: String, val e: AnActionE
 }
 
 
-class JsScriptAction(script: ScriptData, menu: String, e: AnActionEvent) {
+class JsScriptAction(script: ScriptModel, menu: String, e: AnActionEvent) {
 
     // todo
     fun run() {
