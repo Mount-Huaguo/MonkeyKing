@@ -3,6 +3,7 @@ package com.github.mounthuaguo.monkeyking.settings
 import com.github.mounthuaguo.monkeyking.ui.BrowserDialog
 import com.intellij.icons.AllIcons
 import com.intellij.ide.plugins.newui.PluginSearchTextField
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -14,12 +15,14 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.table.JBTable
@@ -279,11 +282,18 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
         table.selectionModel = SingleSelectionModel()
         table.setShowGrid(false)
         table.autoscrolls = true
+        val loadingDecorator = LoadingDecorator(table, Disposable() {
 
-        leftPanel.add(table, BorderLayout.CENTER)
+        }, 0)
+
+        val loading = JBLoadingPanel(null, Disposable { })
+        loading.startLoading()
+        leftPanel.add(loading, BorderLayout.CENTER)
 
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel
+
+
 
         add(splitter, BorderLayout.CENTER)
     }
