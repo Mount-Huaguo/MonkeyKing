@@ -1,6 +1,5 @@
 package com.github.mounthuaguo.monkeyking.settings
 
-import com.github.mounthuaguo.monkeyking.ui.BrowserDialog
 import com.intellij.icons.AllIcons
 import com.intellij.ide.plugins.newui.PluginSearchTextField
 import com.intellij.openapi.Disposable
@@ -22,6 +21,7 @@ import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTabbedPane
@@ -29,6 +29,7 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Dimension
+import javax.swing.DefaultListModel
 import javax.swing.JTabbedPane
 import javax.swing.ListSelectionModel
 
@@ -47,69 +48,56 @@ class MKConfigureComponent : BorderLayoutPanel() {
 
 class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
-    private val scriptTable: JBTable = JBTable()
+    private val scriptList = JBList<ScriptModel>()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = MKStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
 
-    private var searchBar = PluginSearchTextField()
-
     init {
 
         // table
         scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+        scripts.addAll(state.getScripts())
+
+        val dlmIns: DefaultListModel<*> = DefaultListModel<Any?>()
+
 
         println("state.getScripts(), ${state.getScripts()}")
-        scriptTable.setShowColumns(true)
-        scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
-        scriptTable.model = ScriptTableModel(scripts)
-        scriptTable.rowHeight = 80
-        scriptTable.dragEnabled = false
-        scriptTable.isStriped = true
-        scriptTable.selectionModel = SingleSelectionModel()
-        scriptTable.setShowGrid(false)
-        scriptTable.autoscrolls = true
+        scriptList.dragEnabled = false
+        scriptList.selectionModel = SingleSelectionModel()
+        scriptList.autoscrolls = true
+        scriptList.cellRenderer = ScriptListCell()
+        scriptList.model = ScriptListModel(scripts)
+        scriptList.fixedCellHeight = 60
 
-        val selectionModel: ListSelectionModel = scriptTable.selectionModel
+        val selectionModel: ListSelectionModel = scriptList.selectionModel
         selectionModel.addListSelectionListener {
-            println("ListSelectionListener ${scriptTable.selectedRow}")
-            processChangedScript()
-            reselectTable()
+            println("ListSelectionListener ${it}")
         }
 
-        val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
+        val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptList)
         // add
-
         val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
-
-                scripts.add(ScriptModel("lua"))
-                scriptTable.removeRowSelectionInterval(selectRow, selectRow)
-                refreshTable()
-                scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
             }
         }
 
         val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
-                scripts.add(ScriptModel("lua"))
-                scriptTable.removeRowSelectionInterval(selectRow, selectRow)
-                refreshTable()
-                scriptTable.setRowSelectionInterval(scripts.size, scripts.size)
-            }
-        }
-
-        // browser
-        val browserAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Show) {
-            override fun actionPerformed(e: AnActionEvent) {
-                println("e.project, ${e.project}")
-                if (BrowserDialog().showAndGet()) {
-                    // todo
-                    println("dialog closed")
-                }
             }
         }
 
@@ -121,15 +109,15 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
         val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
             override fun actionPerformed(e: AnActionEvent) {
-                println(e)
+                val model = scriptList.model as ScriptListModel
+                model.removeLastScript()
+                scriptList.model = model
             }
         }
-
 
         val newActionGroup = DefaultActionGroup(newLuaAction, newJsAction)
         newActionGroup.templatePresentation.icon = AllIcons.General.Add
         newActionGroup.isPopup = true
-
 
         val addAction: AnAction = object : DumbAwareAction(AllIcons.General.Add) {
             override fun actionPerformed(e: AnActionEvent) {
@@ -145,24 +133,28 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
             }
         }
 
-        val actionGroup = DefaultActionGroup(addAction, browserAction, copyAction, removeAction)
+        val actionGroup = DefaultActionGroup(addAction, copyAction, removeAction)
         actionGroup.isPopup = true
         toolbarDecorator.setActionGroup(actionGroup)
+        toolbarDecorator.disableAddAction()
+        toolbarDecorator.disableRemoveAction()
+        toolbarDecorator.disableUpAction()
+        toolbarDecorator.disableUpDownActions()
+        toolbarDecorator.disableDownAction()
         toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
 
         val tablePanel = toolbarDecorator.createPanel()
-        tablePanel.minimumSize = Dimension(200, 600)
-
         val splitter = JBSplitter()
+
         splitter.firstComponent = tablePanel
         splitter.secondComponent = editor
         add(splitter, BorderLayout.CENTER)
     }
 
     private fun reselectTable() {
-        selectRow = scriptTable.selectedRow
-        val d = scripts[selectRow]
-        editor.setScriptData(d)
+//        selectRow = scriptTable.selectedRow
+//        val d = scripts[selectRow]
+//        editor.setScriptData(d)
     }
 
     private fun processChangedScript() {
@@ -172,7 +164,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
     fun refreshTable() {
 //        scriptTable.fire
-        scriptTable.repaint()
+//        scriptTable.repaint()
     }
 
     fun saveScripts() {
@@ -293,7 +285,22 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel
 
-
+//        splitter.addHierarchyListener { println("splitter.addHierarchyListener $it") }
+//        splitter.addHierarchyBoundsListener(object : HierarchyBoundsListener {
+//            override fun ancestorMoved(e: HierarchyEvent?) {
+//                println("HierarchyBoundsListener, ancestorMoved, ${e}")
+//            }
+//
+//            override fun ancestorResized(e: HierarchyEvent?) {
+//                println(
+//                    "HierarchyBoundsListener, ancestorResized,${
+//                        splitter.firstComponent.size
+//                    }"
+//                )
+//
+//            }
+//
+//        })
 
         add(splitter, BorderLayout.CENTER)
     }
