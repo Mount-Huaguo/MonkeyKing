@@ -21,7 +21,7 @@ class MKConfigure : Configurable, Configurable.NoScroll {
     override fun apply() {
 //        component.saveScripts()
         // reload listener and actions
-        ApplicationService.getInstance().reload(MKStateService.getInstance().getScripts())
+        ApplicationService.getInstance().reload(ConfigureStateService.getInstance().getScripts())
     }
 
     override fun getDisplayName(): String {

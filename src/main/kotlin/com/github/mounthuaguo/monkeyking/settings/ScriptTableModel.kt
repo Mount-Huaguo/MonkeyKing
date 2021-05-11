@@ -14,23 +14,15 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
     }
 
     override fun getColumnCount(): Int {
-        return 2
+        return 1
     }
 
     override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-        return if (columnIndex == 0) {
-            scripts[rowIndex]
-        } else {
-            true
-        }
+        return scripts[rowIndex]
     }
 
-    override fun getColumnName(column: Int): String? {
-        return if (column == 1) {
-            "SCRIPTS"
-        } else {
-            "ENABLE"
-        }
+    override fun getColumnName(column: Int): String {
+        return "SCRIPTS"
     }
 
     fun setScripts(s: MutableList<ScriptModel>) {
@@ -54,11 +46,7 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
     }
 
     override fun getColumnClass(columnIndex: Int): Class<*> {
-        return if (columnIndex == 0) {
-            ScriptTableModelCell::class.java
-        } else {
-            Boolean::class.java
-        }
+        return ScriptTableModelCell::class.java
     }
 
 }

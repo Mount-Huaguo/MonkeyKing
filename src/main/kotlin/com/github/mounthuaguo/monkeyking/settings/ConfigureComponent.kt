@@ -21,7 +21,6 @@ import com.intellij.ui.JBSplitter
 import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTabbedPane
@@ -29,7 +28,6 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Dimension
-import javax.swing.DefaultListModel
 import javax.swing.JTabbedPane
 import javax.swing.ListSelectionModel
 
@@ -48,9 +46,9 @@ class MKConfigureComponent : BorderLayoutPanel() {
 
 class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
-    private val scriptList = JBList<ScriptModel>()
+    private val scriptTable = JBTable()
     private val scripts = mutableListOf<ScriptModel>()
-    private val state = MKStateService.getInstance()
+    private val state = ConfigureStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
 
@@ -71,23 +69,20 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
 
-        val dlmIns: DefaultListModel<*> = DefaultListModel<Any?>()
-
-
         println("state.getScripts(), ${state.getScripts()}")
-        scriptList.dragEnabled = false
-        scriptList.selectionModel = SingleSelectionModel()
-        scriptList.autoscrolls = true
-        scriptList.cellRenderer = ScriptListCell()
-        scriptList.model = ScriptListModel(scripts)
-        scriptList.fixedCellHeight = 60
+        scriptTable.dragEnabled = false
+        scriptTable.selectionModel = SingleSelectionModel()
+        scriptTable.autoscrolls = true
+        scriptTable.setDefaultRenderer(ScriptTableModel::class.java, ScriptTableModelCell())
+        scriptTable.model = ScriptTableModel(scripts)
+        scriptTable.rowHeight = 60
 
-        val selectionModel: ListSelectionModel = scriptList.selectionModel
+        val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${it}")
         }
 
-        val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptList)
+        val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
         // add
         val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
             override fun actionPerformed(e: AnActionEvent) {
@@ -109,9 +104,9 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
         val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
             override fun actionPerformed(e: AnActionEvent) {
-                val model = scriptList.model as ScriptListModel
-                model.removeLastScript()
-                scriptList.model = model
+                val model = scriptTable.model as ScriptTableModel
+//                model.removeLastScript()
+//                scriptTable.model = model
             }
         }
 
@@ -265,7 +260,7 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
 
     init {
         leftPanel.add(searchBar, BorderLayout.NORTH)
-        val scripts = MKStateService.getInstance().getScripts()
+        val scripts = ConfigureStateService.getInstance().getScripts()
         table.model = ScriptTableModel(scripts.toMutableList())
         table.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
         table.rowHeight = 80

@@ -150,23 +150,23 @@ data class ScriptModel(var language: String = "lua", var raw: String = "") {
 
 }
 
-class MKState {
+class ConfigureState {
     var scripts: List<ScriptModel> = listOf()
     var timestamp: Long = 0
 }
 
 @State(name = "com.github.mounthuaguo.monkeyking", storages = [Storage("monkeyking.xml")])
-class MKStateService : PersistentStateComponent<MKState> {
+class ConfigureStateService : PersistentStateComponent<ConfigureState> {
 
-    var mkState = MKState()
+    var mkState = ConfigureState()
 
     companion object {
-        fun getInstance(): MKStateService {
-            return ServiceManager.getService(MKStateService::class.java)
+        fun getInstance(): ConfigureStateService {
+            return ServiceManager.getService(ConfigureStateService::class.java)
         }
     }
 
-    override fun loadState(state: MKState) {
+    override fun loadState(state: ConfigureState) {
         //        XmlSerializerUtil.copyBean(state, mkState)
 
         // for tests
@@ -195,7 +195,7 @@ end
         )
     }
 
-    override fun getState(): MKState {
+    override fun getState(): ConfigureState {
         println("PersistentStateComponent getState $mkState")
         return mkState
     }

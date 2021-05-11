@@ -21,7 +21,7 @@
 
     <!--  PersistentState  -->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.MKStateService"/>
+        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.settings.ConfigureStateService"/>
     </extensions>
 
     <!--  listeners  -->
