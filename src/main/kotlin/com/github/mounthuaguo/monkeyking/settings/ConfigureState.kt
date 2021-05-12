@@ -14,12 +14,14 @@ data class ScriptRequire(val uri: String, val data: String)
 data class ScriptModel(var language: String = "lua", var raw: String = "") {
 
     var version: String = ""
+    var namespace: String = ""
     var name: String = ""
     var description: String = ""
     var action: String = ""
     var topic: String = ""
     var requires: List<ScriptRequire> = listOf()
     var menus: List<String> = listOf()
+    var enabled: Boolean = true
 
     private var errMsg = ""
 

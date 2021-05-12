@@ -51,6 +51,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
     private val state = ConfigureStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
+    private val toolbarDecorator: ToolbarDecorator
 
     init {
 
@@ -61,52 +62,69 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+//        scripts.addAll(state.getScripts())
+
+//        val model = ListTableModel<ScriptModel>()
 
         println("state.getScripts(), ${state.getScripts()}")
         scriptTable.dragEnabled = false
         scriptTable.selectionModel = SingleSelectionModel()
         scriptTable.autoscrolls = true
-        scriptTable.setDefaultRenderer(ScriptTableModel::class.java, ScriptTableModelCell())
+        val scriptTableModelCell = ScriptTableModelCell { row: Int, checked: Boolean ->
+            val model = scriptTable.model as ScriptTableModel
+            model.updateScriptEnabled(row, checked)
+        }
+
+        scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, scriptTableModelCell)
+        scriptTable.setDefaultEditor(ScriptTableModelCell::class.java, scriptTableModelCell)
         scriptTable.model = ScriptTableModel(scripts)
         scriptTable.rowHeight = 60
+        scriptTable.isStriped = true
+        scriptTable.setShowGrid(false)
 
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${it}")
         }
 
-        val toolbarDecorator: ToolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
-        // add
+        toolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
+        toolbarDecorator.setActionGroup(anActionGroup())
+        toolbarDecorator.disableAddAction()
+        toolbarDecorator.disableRemoveAction()
+        toolbarDecorator.disableUpAction()
+        toolbarDecorator.disableUpDownActions()
+        toolbarDecorator.disableDownAction()
+        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
+
+        val tablePanel = toolbarDecorator.createPanel()
+        val splitter = JBSplitter()
+
+        splitter.firstComponent = tablePanel
+        splitter.secondComponent = editor
+        add(splitter, BorderLayout.CENTER)
+    }
+
+    private fun anActionGroup(): DefaultActionGroup {
+
         val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
+                val script = ScriptModel("lua")
+                (scriptTable.model as ScriptTableModel).addScripts(script)
             }
         }
 
         val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
-            }
-        }
-
-        val copyAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Copy) {
-            override fun actionPerformed(e: AnActionEvent) {
-                println(e)
-            }
-        }
-
-        val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
-            override fun actionPerformed(e: AnActionEvent) {
-                val model = scriptTable.model as ScriptTableModel
-//                model.removeLastScript()
-//                scriptTable.model = model
+                val script = ScriptModel("js")
+                (scriptTable.model as ScriptTableModel).addScripts(script)
             }
         }
 
@@ -123,27 +141,34 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
                     JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
                     false
                 );
-                println(" toolbarDecorator.actionsPanel.position, ${toolbarDecorator.actionsPanel.position}")
+//                println(" toolbarDecorator.actionsPanel.position, ${toolbarDecorator.actionsPanel.position}")
                 popup.show(RelativePoint.getSouthWestOf(toolbarDecorator.actionsPanel))
+            }
+        }
+
+
+        val copyAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Copy) {
+            override fun actionPerformed(e: AnActionEvent) {
+                println(e)
+            }
+        }
+
+        val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
+            override fun actionPerformed(e: AnActionEvent) {
+                println("scriptTable.selectedRow, ${scriptTable.selectedRow}")
+                if (scriptTable.selectedRow <= -1) {
+                    return
+                }
+                val model = scriptTable.model as ScriptTableModel
+                model.removeAt(scriptTable.selectedRow)
+                scriptTable.model = model
             }
         }
 
         val actionGroup = DefaultActionGroup(addAction, copyAction, removeAction)
         actionGroup.isPopup = true
-        toolbarDecorator.setActionGroup(actionGroup)
-        toolbarDecorator.disableAddAction()
-        toolbarDecorator.disableRemoveAction()
-        toolbarDecorator.disableUpAction()
-        toolbarDecorator.disableUpDownActions()
-        toolbarDecorator.disableDownAction()
-        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
 
-        val tablePanel = toolbarDecorator.createPanel()
-        val splitter = JBSplitter()
-
-        splitter.firstComponent = tablePanel
-        splitter.secondComponent = editor
-        add(splitter, BorderLayout.CENTER)
+        return actionGroup
     }
 
     private fun reselectTable() {
@@ -262,7 +287,9 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
         leftPanel.add(searchBar, BorderLayout.NORTH)
         val scripts = ConfigureStateService.getInstance().getScripts()
         table.model = ScriptTableModel(scripts.toMutableList())
-        table.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell())
+        table.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell { i: Int, b: Boolean ->
+
+        })
         table.rowHeight = 80
         table.dragEnabled = false
         table.isStriped = true
