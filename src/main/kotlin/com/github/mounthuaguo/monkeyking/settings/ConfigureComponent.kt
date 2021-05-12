@@ -22,12 +22,13 @@ import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLoadingPanel
-import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
+import java.awt.Color
 import java.awt.Dimension
+import javax.swing.JLabel
 import javax.swing.JTabbedPane
 import javax.swing.ListSelectionModel
 
@@ -51,6 +52,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
     private val state = ConfigureStateService.getInstance()
     private val editor = EditorPanel()
     private var selectRow = -1;
+    private var scriptTableModel = ScriptTableModel(mutableListOf<ScriptModel>())
     private val toolbarDecorator: ToolbarDecorator
 
     init {
@@ -62,13 +64,8 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
-//        scripts.addAll(state.getScripts())
+
+        scriptTableModel.setScripts(scripts)
 
         println("state.getScripts(), ${state.getScripts()}")
         scriptTable.dragEnabled = false
@@ -81,7 +78,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
         scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, scriptTableModelCell)
         scriptTable.setDefaultEditor(ScriptTableModelCell::class.java, scriptTableModelCell)
-        scriptTable.model = ScriptTableModel(scripts)
+        scriptTable.model = scriptTableModel
         scriptTable.rowHeight = 60
         scriptTable.isStriped = true
         scriptTable.setShowGrid(false)
@@ -89,6 +86,8 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         val selectionModel: ListSelectionModel = scriptTable.selectionModel
         selectionModel.addListSelectionListener {
             println("ListSelectionListener ${it}")
+            val script = scriptTableModel.scriptAt(scriptTable.selectedRow)
+            editor.setScriptModel(script)
         }
 
         toolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
@@ -157,7 +156,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
                     return
                 }
                 val model = scriptTable.model as ScriptTableModel
-                model.removeAt(scriptTable.selectedRow)
+                model.removeRow(scriptTable.selectedRow)
             }
         }
 
@@ -167,26 +166,10 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         return actionGroup
     }
 
-    private fun reselectTable() {
-//        selectRow = scriptTable.selectedRow
-//        val d = scripts[selectRow]
-//        editor.setScriptData(d)
-    }
-
-    private fun processChangedScript() {
-        val d = editor.getScriptData() ?: return
-        scripts[selectRow] = d
-    }
-
-    fun refreshTable() {
-//        scriptTable.fire
-//        scriptTable.repaint()
-    }
-
     fun saveScripts() {
         val m = mutableMapOf<String, Unit>()
         for (s in scripts) {
-            if (!s.isValid()) {
+            if (s.validate() != "") {
                 return
             }
             // name duplicate
@@ -218,12 +201,13 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
 
     //
-    private class EditorPanel() : JBPanel<JBPanel<*>>(BorderLayout()) {
+    private class EditorPanel() : BorderLayoutPanel() {
 
         var script: ScriptModel? = null
 
         private val editor: Editor
         private val document: Document
+        private val errLabel: JLabel
 
         init {
             // editor
@@ -237,19 +221,26 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
             editor = createEditor("", document)
             add(editor.component, BorderLayout.CENTER)
+            errLabel = JLabel()
+            errLabel.foreground = Color.red
+            add(errLabel, BorderLayout.SOUTH)
         }
 
-        fun setScriptData(s: ScriptModel) {
+        fun setScriptModel(s: ScriptModel) {
             script = s
             refresh()
         }
 
-        fun getScriptData(): ScriptModel? {
-            return script
-        }
-
         fun refresh() {
-            val txt = script?.raw.toString() + script?.raw.toString() + script?.raw.toString() + script?.raw.toString()
+            val txt = script?.raw.toString()
+            val err = script?.validate()
+            if (err != "") {
+                errLabel.isVisible = true
+                errLabel.text = "Error: $err"
+            } else {
+                errLabel.text = ""
+                errLabel.isVisible = false
+            }
             document.setText(txt)
         }
 
@@ -302,23 +293,6 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
 
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel
-
-//        splitter.addHierarchyListener { println("splitter.addHierarchyListener $it") }
-//        splitter.addHierarchyBoundsListener(object : HierarchyBoundsListener {
-//            override fun ancestorMoved(e: HierarchyEvent?) {
-//                println("HierarchyBoundsListener, ancestorMoved, ${e}")
-//            }
-//
-//            override fun ancestorResized(e: HierarchyEvent?) {
-//                println(
-//                    "HierarchyBoundsListener, ancestorResized,${
-//                        splitter.firstComponent.size
-//                    }"
-//                )
-//
-//            }
-//
-//        })
 
         add(splitter, BorderLayout.CENTER)
     }

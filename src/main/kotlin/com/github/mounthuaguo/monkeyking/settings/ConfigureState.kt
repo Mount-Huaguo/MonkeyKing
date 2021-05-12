@@ -4,6 +4,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import org.luaj.vm2.Globals
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.net.URL
 import java.util.*
@@ -23,8 +24,6 @@ data class ScriptModel(var language: String = "lua", var raw: String = "") {
     var menus: List<String> = listOf()
     var enabled: Boolean = true
 
-    private var errMsg = ""
-
     companion object {
         @JvmStatic
         private val luaEnv = JsePlatform.standardGlobals()
@@ -39,30 +38,23 @@ data class ScriptModel(var language: String = "lua", var raw: String = "") {
         name = "unnamed"
     }
 
-    fun isValid(): Boolean {
-        errMsg = ""
+    fun validate(): String {
         if (language != "lua" && language != "js") {
-            errMsg = "Language only support lua and js."
-            return false
+            return "Language only support lua and js."
+        }
+        if (version == "") {
+            return "Version can not be empty"
+        }
+        if (namespace == "") {
+            return "Namespace can not be empty"
         }
         if (action != "menu" && action != "template" && action != "listener") {
-            errMsg = "Action only support menu,template and listener"
-            return false
+            return "Action only support menu,template and listener"
         }
         if (Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
-            errMsg =
-                "Name can't be empty,less than 256 characters,support alpha,digit,dash,whitespace,underscore."
-            return false
+            return "Name can't be empty,less than 256 characters,support alpha,digit,dash,whitespace,underscore."
         }
-
-        try {
-            luaEnv.load(raw)
-        } catch (e: Exception) {
-            errMsg = "Syntax error"
-            return false
-        }
-
-        return true
+        return LuaValidator(raw).validate()
     }
 
     fun genMenuId(menu: String): String {
@@ -90,10 +82,11 @@ data class ScriptModel(var language: String = "lua", var raw: String = "") {
         }
 
         // parse headers
+        version = parseField(headers, "version")
+        namespace = parseField(headers, "namespace")
         name = parseField(headers, "name")
         description = parseField(headers, "description")
         action = parseField(headers, "action")
-        version = parseField(headers, "version")
         topic = parseField(headers, "topic")
         menus = parseFields(headers, "menu")
         val requireRaw = parseFields(headers, "require")
@@ -236,4 +229,21 @@ end
         println("PersistentStateComponent setScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
     }
 
+}
+
+
+data class LuaValidator(private val raw: String) {
+    companion object {
+        @JvmStatic
+        val env: Globals = JsePlatform.standardGlobals()
+    }
+
+    fun validate(): String {
+        return try {
+            env.load(raw)
+            ""
+        } catch (e: Exception) {
+            e.toString()
+        }
+    }
 }

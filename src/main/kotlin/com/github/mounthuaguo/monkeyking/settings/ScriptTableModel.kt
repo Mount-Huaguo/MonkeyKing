@@ -2,7 +2,9 @@ package com.github.mounthuaguo.monkeyking.settings
 
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.ItemRemovable
 import com.intellij.util.ui.components.BorderLayoutPanel
+import java.awt.Color
 import java.awt.Component
 import javax.swing.DefaultCellEditor
 import javax.swing.JCheckBox
@@ -12,7 +14,7 @@ import javax.swing.table.AbstractTableModel
 import javax.swing.table.TableCellRenderer
 
 
-class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : AbstractTableModel() {
+class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : AbstractTableModel(), ItemRemovable {
 
     override fun getRowCount(): Int {
         return scripts.size
@@ -49,6 +51,10 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
         fireTableDataChanged()
     }
 
+    fun scriptAt(row: Int): ScriptModel {
+        return scripts[row]
+    }
+
     fun remove(s: ScriptModel) {
         scripts.remove(s)
         fireTableDataChanged()
@@ -71,6 +77,11 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
 
     override fun getColumnClass(columnIndex: Int): Class<*> {
         return ScriptTableModelCell::class.java
+    }
+
+    override fun removeRow(idx: Int) {
+        scripts.removeAt(idx);
+        fireTableRowsDeleted(idx, idx);
     }
 
 }
@@ -98,6 +109,9 @@ class ScriptTableModelCell(private val checkBoxValueChanged: (index: Int, checke
         val checkbox = CheckBox("", data.enabled)
         panel.addToRight(checkbox)
         panel.border = EmptyBorder(0, 10, 0, 10)
+        if (data.validate() != "") {
+            nameLabel.foreground = Color.RED
+        }
         return panel
     }
 
@@ -119,6 +133,10 @@ class ScriptTableModelCell(private val checkBoxValueChanged: (index: Int, checke
         val checkbox = CheckBox("", data.enabled)
         panel.addToRight(checkbox)
         panel.border = EmptyBorder(0, 10, 0, 10)
+
+        if (data.validate() != "") {
+            nameLabel.foreground = Color.RED
+        }
 
         checkbox.addActionListener {
             checkBoxValueChanged(row, checkbox.isSelected)
