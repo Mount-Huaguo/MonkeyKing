@@ -70,8 +70,6 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 //        scripts.addAll(state.getScripts())
 //        scripts.addAll(state.getScripts())
 
-//        val model = ListTableModel<ScriptModel>()
-
         println("state.getScripts(), ${state.getScripts()}")
         scriptTable.dragEnabled = false
         scriptTable.selectionModel = SingleSelectionModel()
@@ -146,7 +144,6 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
             }
         }
 
-
         val copyAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Copy) {
             override fun actionPerformed(e: AnActionEvent) {
                 println(e)
@@ -161,7 +158,6 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
                 }
                 val model = scriptTable.model as ScriptTableModel
                 model.removeAt(scriptTable.selectedRow)
-                scriptTable.model = model
             }
         }
 

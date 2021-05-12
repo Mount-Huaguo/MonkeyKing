@@ -55,6 +55,7 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
     }
 
     fun removeAt(row: Int) {
+        println("removeAt: $row, ${scripts.size}")
         scripts.removeAt(row)
         fireTableRowsDeleted(row, row)
     }
@@ -63,7 +64,6 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
         scripts[row].enabled = enabled
         fireTableDataChanged()
     }
-
 
     fun replace(s: ScriptModel) {
         // todo
