@@ -12,7 +12,7 @@ import java.util.*
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
-data class ScriptModel(var language: String = "lua", var raw: String = "") {
+data class ScriptModel(val language: String = "lua", var raw: String = "") {
 
     var version: String = ""
     var namespace: String = ""
@@ -49,12 +49,18 @@ data class ScriptModel(var language: String = "lua", var raw: String = "") {
             return "Namespace can not be empty"
         }
         if (action != "menu" && action != "template" && action != "listener") {
-            return "Action only support menu,template and listener"
+            return "Action can be menu,template and listener"
         }
-        if (Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
-            return "Name can't be empty,less than 256 characters,support alpha,digit,dash,whitespace,underscore."
+        if (!Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
+//            return "Name can't be empty,\nless than 256 characters,\nsupport alpha,digit,dash,whitespace,underscore."
+            println("script name: $name")
+            return "Name format error"
         }
-        return LuaValidator(raw).validate()
+        val valid = LuaValidator(raw).validate()
+        if (valid != "") {
+            return "Syntax error"
+        }
+        return ""
     }
 
     fun genMenuId(menu: String): String {

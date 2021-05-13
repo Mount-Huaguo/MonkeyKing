@@ -3,9 +3,11 @@ package com.github.mounthuaguo.monkeyking.settings
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.ItemRemovable
+import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.Color
 import java.awt.Component
+import java.awt.Font
 import javax.swing.DefaultCellEditor
 import javax.swing.JCheckBox
 import javax.swing.JTable
@@ -71,6 +73,11 @@ class ScriptTableModel(private var scripts: MutableList<ScriptModel>) : Abstract
         fireTableDataChanged()
     }
 
+    fun updateScript(row: Int, script: ScriptModel) {
+        scripts[row] = script
+        fireTableRowsUpdated(row, row)
+    }
+
     fun replace(s: ScriptModel) {
         // todo
     }
@@ -98,14 +105,19 @@ class ScriptTableModelCell(private val checkBoxValueChanged: (index: Int, checke
         row: Int,
         column: Int
     ): Component {
+
         val data = value as ScriptModel
         val nameLabel = JBLabel(data.name)
         val languageLabel = JBLabel("Language: " + data.language)
-        val descLabel = JBLabel(data.description)
         val panel = BorderLayoutPanel()
-        panel.addToTop(nameLabel)
-        panel.addToCenter(languageLabel)
-        panel.addToBottom(descLabel)
+        val leftPanel = BorderLayoutPanel()
+        leftPanel.addToCenter(nameLabel)
+        leftPanel.addToBottom(languageLabel)
+        val labelFont: Font = StartupUiUtil.getLabelFont()
+        languageLabel.font = labelFont.deriveFont(labelFont.size2D - 2.0f)
+        languageLabel.foreground = Color.gray
+        leftPanel.border = EmptyBorder(5, 0, 5, 0)
+        panel.addToCenter(leftPanel)
         val checkbox = CheckBox("", data.enabled)
         panel.addToRight(checkbox)
         panel.border = EmptyBorder(0, 10, 0, 10)
@@ -125,15 +137,18 @@ class ScriptTableModelCell(private val checkBoxValueChanged: (index: Int, checke
         val data = value as ScriptModel
         val nameLabel = JBLabel(data.name)
         val languageLabel = JBLabel("Language: " + data.language)
-        val descLabel = JBLabel(data.description)
         val panel = BorderLayoutPanel()
-        panel.addToTop(nameLabel)
-        panel.addToCenter(languageLabel)
-        panel.addToBottom(descLabel)
+        val leftPanel = BorderLayoutPanel()
+        leftPanel.addToCenter(nameLabel)
+        leftPanel.addToBottom(languageLabel)
+        leftPanel.border = EmptyBorder(5, 0, 5, 0)
+        val labelFont: Font = StartupUiUtil.getLabelFont()
+        languageLabel.font = labelFont.deriveFont(labelFont.size2D - 2.0f)
+        languageLabel.foreground = Color.gray
+        panel.addToCenter(leftPanel)
         val checkbox = CheckBox("", data.enabled)
         panel.addToRight(checkbox)
         panel.border = EmptyBorder(0, 10, 0, 10)
-
         if (data.validate() != "") {
             nameLabel.foreground = Color.RED
         }

@@ -28,8 +28,8 @@ import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Dimension
-import javax.swing.JLabel
 import javax.swing.JTabbedPane
+import javax.swing.JTextArea
 import javax.swing.ListSelectionModel
 
 
@@ -50,8 +50,9 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
     private val scriptTable = JBTable()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
-    private val editor = EditorPanel()
-    private var selectRow = -1;
+    private val editor = EditorPanel {
+        scriptHasChanged(it)
+    }
     private var scriptTableModel = ScriptTableModel(mutableListOf<ScriptModel>())
     private val toolbarDecorator: ToolbarDecorator
 
@@ -79,7 +80,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, scriptTableModelCell)
         scriptTable.setDefaultEditor(ScriptTableModelCell::class.java, scriptTableModelCell)
         scriptTable.model = scriptTableModel
-        scriptTable.rowHeight = 60
+        scriptTable.rowHeight = 40
         scriptTable.isStriped = true
         scriptTable.setShowGrid(false)
 
@@ -100,10 +101,11 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
 
         val tablePanel = toolbarDecorator.createPanel()
-        val splitter = JBSplitter()
-
+        val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
         splitter.firstComponent = tablePanel
         splitter.secondComponent = editor
+        splitter.firstComponent.maximumSize = Dimension(160, 100)
+        splitter.firstComponent.minimumSize = Dimension(100, 100)
         add(splitter, BorderLayout.CENTER)
     }
 
@@ -182,6 +184,13 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         state.state
     }
 
+    fun scriptHasChanged(script: ScriptModel) {
+        if (scriptTable.selectedRow == -1) {
+            return
+        }
+        scriptTableModel.updateScript(scriptTable.selectedRow, script)
+    }
+
     fun isEqual(): Boolean {
         if (state.getScripts().size != scripts.size) {
             return false
@@ -201,29 +210,27 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
 
     //
-    private class EditorPanel() : BorderLayoutPanel() {
+    private class EditorPanel(val modelHasChanged: (model: ScriptModel) -> Unit) : BorderLayoutPanel(),
+        DocumentListener {
 
         var script: ScriptModel? = null
 
         private val editor: Editor
         private val document: Document
-        private val errLabel: JLabel
+        private var textarea = JTextArea("")
 
         init {
             // editor
             val factory = EditorFactory.getInstance()
             document = factory.createDocument("")
             document.setReadOnly(false)
-            document.addDocumentListener(object : DocumentListener {
-                override fun documentChanged(event: DocumentEvent) {
-                }
-            })
-
+            document.addDocumentListener(this)
             editor = createEditor("", document)
             add(editor.component, BorderLayout.CENTER)
-            errLabel = JLabel()
-            errLabel.foreground = Color.red
-            add(errLabel, BorderLayout.SOUTH)
+            textarea.foreground = Color.red
+            textarea.background = Color(0, 0, 0, 0)
+            textarea.isEditable = false
+            add(textarea, BorderLayout.SOUTH)
         }
 
         fun setScriptModel(s: ScriptModel) {
@@ -232,16 +239,28 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         }
 
         fun refresh() {
+            if (script == null) {
+                return
+            }
             val txt = script?.raw.toString()
             val err = script?.validate()
             if (err != "") {
-                errLabel.isVisible = true
-                errLabel.text = "Error: $err"
+                textarea.isVisible = true
+                textarea.text = "Error: $err"
             } else {
-                errLabel.text = ""
-                errLabel.isVisible = false
+                textarea.text = ""
+                textarea.isVisible = false
             }
             document.setText(txt)
+        }
+
+        override fun documentChanged(event: DocumentEvent) {
+            if (script == null) {
+                return
+            }
+            script = ScriptModel(script!!.language, document.text)
+            modelHasChanged(script!!)
+            refresh()
         }
 
         private fun createEditor(filename: String, document: Document): Editor {

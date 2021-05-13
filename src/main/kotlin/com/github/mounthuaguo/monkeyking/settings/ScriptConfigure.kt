@@ -5,7 +5,7 @@ import com.github.mounthuaguo.monkeyking.services.ApplicationService
 import com.intellij.openapi.options.Configurable
 import javax.swing.JComponent
 
-class MKConfigure : Configurable, Configurable.NoScroll {
+class ScriptConfigure : Configurable, Configurable.NoScroll {
 
     private val component = MKConfigureComponent()
 
