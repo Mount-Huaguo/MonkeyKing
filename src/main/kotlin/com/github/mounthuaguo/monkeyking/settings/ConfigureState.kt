@@ -197,12 +197,12 @@ end
     }
 
     override fun getState(): ConfigureState {
-        println("PersistentStateComponent getState $mkState")
+//        println("PersistentStateComponent getState $mkState")
         return mkState
     }
 
     fun getScripts(): List<ScriptModel> {
-        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
+//        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
 //        return mkState.scripts
         return listOf(
             ScriptModel(

@@ -1,50 +1,51 @@
 package com.github.mounthuaguo.monkeyking.settings
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.IdeBundle
-import com.intellij.ide.fileTemplates.impl.UrlUtil
+import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.plugins.newui.PluginSearchTextField
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.fileTypes.FileTypeManager
+import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
-import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBTabbedPane
-import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import org.jetbrains.annotations.NotNull
-import org.jetbrains.annotations.Nullable
-import java.awt.*
-import java.net.URL
-import javax.swing.*
+import java.awt.BorderLayout
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
+import java.util.*
+import javax.swing.JEditorPane
+import javax.swing.JPanel
+import javax.swing.JTabbedPane
+import javax.swing.ListSelectionModel
 
 
-class MKConfigureComponent(val project: Project) : BorderLayoutPanel() {
+class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
     private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
     private val browserPanel = MKConfigureBrowserComponent()
-    private val installedPanel = MKConfigureInstalledComponent(project)
+    private val installedPanel = MKConfigureInstalledComponent(myProject)
 
     init {
         tabbedPane.addTab("Installed", installedPanel)
@@ -56,19 +57,16 @@ class MKConfigureComponent(val project: Project) : BorderLayoutPanel() {
     }
 }
 
-class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() {
+class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayoutPanel() {
 
-    private val scriptTable = JBTable()
+    private var scriptListView: JBList<ScriptModel> = JBList()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
-    private val editor = EditorPanel(project) {
-        scriptHasChanged(it)
-    }
-    private var scriptTableModel = ScriptTableModel(mutableListOf<ScriptModel>())
-    private val toolbarDecorator: ToolbarDecorator
+    private val editorPanel = ScriptEditorPanel(myProject)
+    private val mySpliterator = JBSplitter(false, 0.35f, 0.3f, 0.5f)
+    private var toolbarDecorator: ToolbarDecorator? = null
 
     init {
-
         // table
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
@@ -76,49 +74,51 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
         scripts.addAll(state.getScripts())
+        setupUI()
 
-        scriptTableModel.setScripts(scripts)
-
-        println("state.getScripts(), ${state.getScripts()}")
-        scriptTable.dragEnabled = false
-        scriptTable.selectionModel = SingleSelectionModel()
-        scriptTable.autoscrolls = true
-        val scriptTableModelCell = ScriptTableModelCell { row: Int, checked: Boolean ->
-            val model = scriptTable.model as ScriptTableModel
-            model.updateScriptEnabled(row, checked)
-        }
-
-        scriptTable.setDefaultRenderer(ScriptTableModelCell::class.java, scriptTableModelCell)
-        scriptTable.setDefaultEditor(ScriptTableModelCell::class.java, scriptTableModelCell)
-        scriptTable.model = scriptTableModel
-        scriptTable.rowHeight = 40
-        scriptTable.isStriped = true
-        scriptTable.setShowGrid(false)
-
-        val selectionModel: ListSelectionModel = scriptTable.selectionModel
-        selectionModel.addListSelectionListener {
-            println("ListSelectionListener ${it}")
-            val script = scriptTableModel.scriptAt(scriptTable.selectedRow)
-            editor.setScriptModel(script)
-        }
-
-        toolbarDecorator = ToolbarDecorator.createDecorator(scriptTable)
-        toolbarDecorator.setActionGroup(anActionGroup())
-        toolbarDecorator.disableAddAction()
-        toolbarDecorator.disableRemoveAction()
-        toolbarDecorator.disableUpAction()
-        toolbarDecorator.disableUpDownActions()
-        toolbarDecorator.disableDownAction()
-        toolbarDecorator.setToolbarPosition(ActionToolbarPosition.BOTTOM)
-
-        val tablePanel = toolbarDecorator.createPanel()
-        val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
-        splitter.firstComponent = tablePanel
-        splitter.secondComponent = editor
-        splitter.firstComponent.maximumSize = Dimension(160, 100)
-        splitter.firstComponent.minimumSize = Dimension(100, 100)
-        add(splitter, BorderLayout.CENTER)
     }
+
+    private fun setupUI() {
+        setupScriptListView()
+        setupEditorView()
+        add(mySpliterator, BorderLayout.CENTER)
+    }
+
+    // script list view
+    private fun setupScriptListView() {
+        val toolbar = ToolbarDecorator.createDecorator(scriptListView)
+        toolbar.setActionGroup(anActionGroup())
+        toolbar.disableAddAction()
+        toolbar.disableRemoveAction()
+        toolbar.disableUpAction()
+        toolbar.disableUpDownActions()
+        toolbar.disableDownAction()
+        toolbar.setToolbarPosition(ActionToolbarPosition.BOTTOM)
+        toolbarDecorator = toolbar
+
+        val listPanel = toolbar.createPanel()
+        mySpliterator.firstComponent = listPanel
+
+        val scriptListModel = ScriptListModel(scripts)
+        scriptListView.model = scriptListModel
+
+        scriptListView.installCellRenderer(ScriptListModelCell())
+        scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        scriptListView.addListSelectionListener {
+            println("addListSelectionListener $it")
+            if (!it.valueIsAdjusting) {
+                return@addListSelectionListener
+            }
+            editorPanel.setScriptModel(scriptListModel.getElementAt(it.firstIndex))
+        }
+
+        mySpliterator.firstComponent = scriptListView
+    }
+
+    private fun setupEditorView() {
+        mySpliterator.secondComponent = editorPanel
+    }
+
 
     private fun anActionGroup(): DefaultActionGroup {
 
@@ -126,7 +126,6 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
                 val script = ScriptModel("lua")
-                (scriptTable.model as ScriptTableModel).addScripts(script)
             }
         }
 
@@ -134,7 +133,6 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
                 val script = ScriptModel("js")
-                (scriptTable.model as ScriptTableModel).addScripts(script)
             }
         }
 
@@ -152,7 +150,7 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
                     false
                 );
 //                println(" toolbarDecorator.actionsPanel.position, ${toolbarDecorator.actionsPanel.position}")
-                popup.show(RelativePoint.getSouthWestOf(toolbarDecorator.actionsPanel))
+                popup.show(RelativePoint.getSouthWestOf(toolbarDecorator!!.actionsPanel))
             }
         }
 
@@ -164,12 +162,6 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
 
         val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
             override fun actionPerformed(e: AnActionEvent) {
-                println("scriptTable.selectedRow, ${scriptTable.selectedRow}")
-                if (scriptTable.selectedRow <= -1) {
-                    return
-                }
-                val model = scriptTable.model as ScriptTableModel
-                model.removeRow(scriptTable.selectedRow)
             }
         }
 
@@ -195,13 +187,6 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
         state.state
     }
 
-    private fun scriptHasChanged(script: ScriptModel) {
-        if (scriptTable.selectedRow == -1) {
-            return
-        }
-        scriptTableModel.updateScript(scriptTable.selectedRow, script)
-    }
-
     fun isEqual(): Boolean {
         if (state.getScripts().size != scripts.size) {
             return false
@@ -220,64 +205,102 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
     }
 
 
-    //
-    private class EditorPanel(val myProject: Project, val modelHasChanged: (model: ScriptModel) -> Unit) :
-        BorderLayoutPanel(),
-        DocumentListener {
+    private class ScriptEditorPanel(val myProject: Project) : JPanel(GridBagLayout()) {
 
-        var script: ScriptModel? = null
-
-        private var editor: Editor? = null
-        private var document: Document? = null
-        private var textarea = JTextArea("")
+        private var myScriptEditorPanel = BorderLayoutPanel()
+        private var myScriptEditor: Editor? = null;
+        private var errorPanel: JEditorPane? = null;
+        private var myScriptModel: ScriptModel? = null;
+        private var luaFieType = FileTypeManager.getInstance().getFileTypeByExtension("lua")
+        private var jsFileType = FileTypeManager.getInstance().getFileTypeByExtension("js")
 
         init {
-            // editor
-            ApplicationManager.getApplication().invokeLater {
-                val factory = EditorFactory.getInstance()
-                document = factory.createDocument("")
-                document!!.setReadOnly(false)
-                document!!.addDocumentListener(this)
-                editor = createEditor("script.lua", document!!)
-                add(editor!!.component, BorderLayout.CENTER)
-                textarea.foreground = Color.red
-                textarea.background = Color(0, 0, 0, 0)
-                textarea.isEditable = false
-                add(textarea, BorderLayout.SOUTH)
-            }
-
-            val myDescriptionComponent = JEditorPane()
-            myDescriptionComponent.editorKit = UIUtil.getHTMLEditorKit()
-            myDescriptionComponent.text = "<html></html>"
-            myDescriptionComponent.isEditable = false
-            myDescriptionComponent.addHyperlinkListener(BrowserHyperlinkListener())
-
-            val descriptionPanel = JPanel(GridBagLayout())
-            descriptionPanel.add(
-                JLabel(IdeBundle.message("label.description")),
-                GridBagConstraints(
-                    0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
-                    JBUI.insetsBottom(2), 0, 0
-                )
-            )
-            descriptionPanel.add(
-                ScrollPaneFactory.createScrollPane(myDescriptionComponent),
-                GridBagConstraints(
-                    0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                    JBUI.insetsTop(2), 0, 0
-                )
-            )
-
-
-            UrlUtil.loadText(URL(""))
-
-
+            setupUI()
         }
 
-        private fun createEditor(@Nullable file: PsiFile): Editor? {
+        fun setupUI() {
+            val panel = JEditorPane()
+            panel.editorKit = UIUtil.getHTMLEditorKit()
+            panel.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
+            panel.isEditable = false
+            panel.addHyperlinkListener(BrowserHyperlinkListener())
+            errorPanel = panel
+
+            val errorComponent = ScrollPaneFactory.createScrollPane(panel)
+
+            this.add(
+                myScriptEditorPanel,
+                GridBagConstraints(
+                    0, 0, 1, 1, 1.0, 0.9,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+                )
+            )
+
+            this.add(
+                errorComponent,
+                GridBagConstraints(
+                    0, 1, 1, 1, 1.0, 0.1,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+                )
+            )
+        }
+
+        fun setScriptModel(script: ScriptModel) {
+            myScriptModel = script
+            reset()
+        }
+
+        private fun reset() {
+            myScriptEditor?.let {
+                println("release editor: $myScriptEditor")
+                EditorFactory.getInstance().releaseEditor(myScriptEditor!!);
+            }
+            myScriptEditor = createEditor()
+
+            errorPanel?.let {
+                errorPanel!!.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
+            }
+            // error
+//            val panel = JEditorPane()
+//            panel.editorKit = UIUtil.getHTMLEditorKit()
+//            panel.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
+//            panel.isEditable = false
+//            panel.addHyperlinkListener(BrowserHyperlinkListener())
+//            errorPanel = panel
+//
+//            val errorComponent = ScrollPaneFactory.createScrollPane(panel)
+
+//            this.add(
+//                myScriptEditor!!.component,
+//                GridBagConstraints(
+//                    0, 0, 1, 1, 1.0, 0.9,
+//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+//                )
+//            )
+//            this.add(
+//                myScriptEditorPanel,
+//                GridBagConstraints(
+//                    0, 0, 1, 1, 1.0, 0.9,
+//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+//                )
+//            )
+//
+//            this.add(
+//                errorComponent,
+//                GridBagConstraints(
+//                    0, 1, 1, 1, 1.0, 0.1,
+//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+//                )
+//            )
+            this.revalidate()
+            this.repaint()
+        }
+
+        private fun createEditor(): Editor {
             val editorFactory = EditorFactory.getInstance()
-            val doc: Document = createDocument(file)
+            val doc: Document = createDocument()
             val editor = editorFactory.createEditor(doc, myProject)
+
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
             editorSettings.isLineMarkerAreaShown = false
@@ -287,78 +310,45 @@ class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() 
             editorSettings.additionalColumnsCount = 3
             editorSettings.additionalLinesCount = 3
             editorSettings.isCaretRowShown = false
+
             editor.document.addDocumentListener(object : DocumentListener {
-                override fun documentChanged(@NotNull e: DocumentEvent) {
-//                    onTextChanged()
+                override fun documentChanged(e: DocumentEvent) {
+                    // todo
                 }
             }, (editor as EditorImpl).disposable)
-//            (editor as EditorEx).highlighter = createHighlighter()
-            val topPanel = JPanel(BorderLayout(0, 5))
-            val southPanel = JPanel(HorizontalLayout(40))
-//            southPanel.add(myAdjustBox)
-//            southPanel.add(myLiveTemplateBox)
-            topPanel.add(southPanel, BorderLayout.SOUTH)
-            topPanel.add(editor.getComponent(), BorderLayout.CENTER)
-//            mySplitter.setFirstComponent(topPanel)
+
+//            this.add(editor.component, BorderLayout.CENTER)
+            myScriptEditorPanel.removeAll()
+            myScriptEditorPanel.add(editor.component, BorderLayout.CENTER)
             return editor
         }
 
-        private fun createDocument(file: PsiFile?): Document {
-            val document = if (file != null) PsiDocumentManager.getInstance(file.project).getDocument(file) else null
-            return document
-                ?: EditorFactory.getInstance().createDocument("")
+        private fun createDocument(): Document {
+            println("createDocument myScriptModel?.raw $myScriptModel ")
+            return EditorFactory.getInstance().createDocument(myScriptModel?.raw ?: "")
         }
 
-        fun setScriptModel(s: ScriptModel) {
-            script = s
-            refresh()
-        }
 
-        fun refresh() {
-            if (script == null) {
-                return
-            }
-            val txt = script?.raw.toString()
-            val err = script?.validate()
-            if (err != "") {
-                textarea.isVisible = true
-                textarea.text = "Error: $err"
+        private fun createFile(text: String): PsiFile? {
+            val fileType: FileType = if (myScriptModel?.language == "lua") {
+                luaFieType
             } else {
-                textarea.text = ""
-                textarea.isVisible = false
+                jsFileType
             }
-            refreshText(txt)
+            if (fileType === FileTypes.UNKNOWN) return null
+
+            val file = PsiFileFactory.getInstance(myProject).createFileFromText("$name.txt.ft", fileType, text, 0, true)
+            val properties = Properties()
+            properties.putAll(FileTemplateManager.getInstance(myProject).defaultProperties)
+//            properties.setProperty(FileTemplate.ATTRIBUTE_NAME, IdeBundle.message("name.variable"))
+            file.viewProvider.putUserData(FileTemplateManager.DEFAULT_TEMPLATE_PROPERTIES, properties)
+            return file
         }
 
-        fun refreshText(text: String) {
-            ApplicationManager.getApplication().runWriteAction() {
-                println("editor: $editor")
-                editor?.document?.setText(text)
-            };
-        }
-
-        override fun documentChanged(event: DocumentEvent) {
-            if (script == null) {
-                return
+        fun disposeUIResources() {
+            myScriptEditor?.let {
+                EditorFactory.getInstance().releaseEditor(myScriptEditor!!)
             }
-            script = document?.let { ScriptModel(script!!.language, it.text) }
-            modelHasChanged(script!!)
-            refresh()
-        }
-
-        private fun createEditor(filename: String, document: Document): Editor {
-            val fileExtension: String = FileUtilRt.getExtension(filename)
-            val editor = EditorFactory.getInstance().createEditor(
-                document,
-                myProject,
-                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
-                false
-            )
-            editor.component.minimumSize = Dimension(200, 600)
-            editor.settings.isLineNumbersShown = false
-            editor.settings.isLineMarkerAreaShown = false
-            editor.settings.isFoldingOutlineShown = false
-            return editor
         }
 
     }
