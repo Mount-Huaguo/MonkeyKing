@@ -3,11 +3,12 @@ package com.github.mounthuaguo.monkeyking.settings
 import com.github.mounthuaguo.monkeyking.MKBundle
 import com.github.mounthuaguo.monkeyking.services.ApplicationService
 import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.project.Project
 import javax.swing.JComponent
 
-class ScriptConfigure : Configurable, Configurable.NoScroll {
+class ScriptConfigure(val project: Project) : Configurable, Configurable.NoScroll {
 
-    private val component = MKConfigureComponent()
+    private val component = MKConfigureComponent(project)
 
     override fun createComponent(): JComponent {
         return component

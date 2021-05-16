@@ -53,11 +53,12 @@
 
     <!-- configurable -->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationConfigurable parentId="tools"
-                                 instance="com.github.mounthuaguo.monkeyking.settings.MKConfigure"
-                                 id="com.github.mounthuaguo.monkeyking.settings.MKConfigure"
-                                 displayName="Monkey King"/>
-
+        <projectConfigurable parentId="tools"
+                             instance="com.github.mounthuaguo.monkeyking.settings.ScriptConfigure"
+                             id="com.github.mounthuaguo.monkeyking.settings.ScriptConfigure"
+                             displayName="Monkey King"/>
+        <search.topHitProvider
+                implementation="com.github.mounthuaguo.monkeyking.settings.ScriptTopHitProvider"/>
     </extensions>
 
     <!-- tool window -->

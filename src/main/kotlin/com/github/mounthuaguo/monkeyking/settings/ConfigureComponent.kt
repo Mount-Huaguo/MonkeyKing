@@ -1,56 +1,67 @@
 package com.github.mounthuaguo.monkeyking.settings
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.IdeBundle
+import com.intellij.ide.fileTemplates.impl.UrlUtil
 import com.intellij.ide.plugins.newui.PluginSearchTextField
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.ui.JBSplitter
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
+import com.intellij.ui.*
 import com.intellij.ui.SingleSelectionModel
-import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.Dimension
-import javax.swing.JTabbedPane
-import javax.swing.JTextArea
-import javax.swing.ListSelectionModel
+import org.jetbrains.annotations.NotNull
+import org.jetbrains.annotations.Nullable
+import java.awt.*
+import java.net.URL
+import javax.swing.*
 
 
-class MKConfigureComponent : BorderLayoutPanel() {
+class MKConfigureComponent(val project: Project) : BorderLayoutPanel() {
     private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
     private val browserPanel = MKConfigureBrowserComponent()
-    private val installedPanel = MKConfigureInstalledComponent()
+    private val installedPanel = MKConfigureInstalledComponent(project)
 
     init {
         tabbedPane.addTab("Installed", installedPanel)
         tabbedPane.addTab("Browser", browserPanel)
+        tabbedPane.addChangeListener {
+            println("addChangeListener: $it")
+        }
         add(tabbedPane, BorderLayout.CENTER)
     }
 }
 
-class MKConfigureInstalledComponent : BorderLayoutPanel() {
+class MKConfigureInstalledComponent(val project: Project) : BorderLayoutPanel() {
 
     private val scriptTable = JBTable()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
-    private val editor = EditorPanel {
+    private val editor = EditorPanel(project) {
         scriptHasChanged(it)
     }
     private var scriptTableModel = ScriptTableModel(mutableListOf<ScriptModel>())
@@ -184,7 +195,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
         state.state
     }
 
-    fun scriptHasChanged(script: ScriptModel) {
+    private fun scriptHasChanged(script: ScriptModel) {
         if (scriptTable.selectedRow == -1) {
             return
         }
@@ -210,27 +221,92 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
 
 
     //
-    private class EditorPanel(val modelHasChanged: (model: ScriptModel) -> Unit) : BorderLayoutPanel(),
+    private class EditorPanel(val myProject: Project, val modelHasChanged: (model: ScriptModel) -> Unit) :
+        BorderLayoutPanel(),
         DocumentListener {
 
         var script: ScriptModel? = null
 
-        private val editor: Editor
-        private val document: Document
+        private var editor: Editor? = null
+        private var document: Document? = null
         private var textarea = JTextArea("")
 
         init {
             // editor
-            val factory = EditorFactory.getInstance()
-            document = factory.createDocument("")
-            document.setReadOnly(false)
-            document.addDocumentListener(this)
-            editor = createEditor("", document)
-            add(editor.component, BorderLayout.CENTER)
-            textarea.foreground = Color.red
-            textarea.background = Color(0, 0, 0, 0)
-            textarea.isEditable = false
-            add(textarea, BorderLayout.SOUTH)
+            ApplicationManager.getApplication().invokeLater {
+                val factory = EditorFactory.getInstance()
+                document = factory.createDocument("")
+                document!!.setReadOnly(false)
+                document!!.addDocumentListener(this)
+                editor = createEditor("script.lua", document!!)
+                add(editor!!.component, BorderLayout.CENTER)
+                textarea.foreground = Color.red
+                textarea.background = Color(0, 0, 0, 0)
+                textarea.isEditable = false
+                add(textarea, BorderLayout.SOUTH)
+            }
+
+            val myDescriptionComponent = JEditorPane()
+            myDescriptionComponent.editorKit = UIUtil.getHTMLEditorKit()
+            myDescriptionComponent.text = "<html></html>"
+            myDescriptionComponent.isEditable = false
+            myDescriptionComponent.addHyperlinkListener(BrowserHyperlinkListener())
+
+            val descriptionPanel = JPanel(GridBagLayout())
+            descriptionPanel.add(
+                JLabel(IdeBundle.message("label.description")),
+                GridBagConstraints(
+                    0, 0, 1, 1, 0.0, 0.0, GridBagConstraints.WEST, GridBagConstraints.NONE,
+                    JBUI.insetsBottom(2), 0, 0
+                )
+            )
+            descriptionPanel.add(
+                ScrollPaneFactory.createScrollPane(myDescriptionComponent),
+                GridBagConstraints(
+                    0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                    JBUI.insetsTop(2), 0, 0
+                )
+            )
+
+
+            UrlUtil.loadText(URL(""))
+
+
+        }
+
+        private fun createEditor(@Nullable file: PsiFile): Editor? {
+            val editorFactory = EditorFactory.getInstance()
+            val doc: Document = createDocument(file)
+            val editor = editorFactory.createEditor(doc, myProject)
+            val editorSettings = editor.settings
+            editorSettings.isVirtualSpace = false
+            editorSettings.isLineMarkerAreaShown = false
+            editorSettings.isIndentGuidesShown = false
+            editorSettings.isLineNumbersShown = false
+            editorSettings.isFoldingOutlineShown = false
+            editorSettings.additionalColumnsCount = 3
+            editorSettings.additionalLinesCount = 3
+            editorSettings.isCaretRowShown = false
+            editor.document.addDocumentListener(object : DocumentListener {
+                override fun documentChanged(@NotNull e: DocumentEvent) {
+//                    onTextChanged()
+                }
+            }, (editor as EditorImpl).disposable)
+//            (editor as EditorEx).highlighter = createHighlighter()
+            val topPanel = JPanel(BorderLayout(0, 5))
+            val southPanel = JPanel(HorizontalLayout(40))
+//            southPanel.add(myAdjustBox)
+//            southPanel.add(myLiveTemplateBox)
+            topPanel.add(southPanel, BorderLayout.SOUTH)
+            topPanel.add(editor.getComponent(), BorderLayout.CENTER)
+//            mySplitter.setFirstComponent(topPanel)
+            return editor
+        }
+
+        private fun createDocument(file: PsiFile?): Document {
+            val document = if (file != null) PsiDocumentManager.getInstance(file.project).getDocument(file) else null
+            return document
+                ?: EditorFactory.getInstance().createDocument("")
         }
 
         fun setScriptModel(s: ScriptModel) {
@@ -251,14 +327,21 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
                 textarea.text = ""
                 textarea.isVisible = false
             }
-            document.setText(txt)
+            refreshText(txt)
+        }
+
+        fun refreshText(text: String) {
+            ApplicationManager.getApplication().runWriteAction() {
+                println("editor: $editor")
+                editor?.document?.setText(text)
+            };
         }
 
         override fun documentChanged(event: DocumentEvent) {
             if (script == null) {
                 return
             }
-            script = ScriptModel(script!!.language, document.text)
+            script = document?.let { ScriptModel(script!!.language, it.text) }
             modelHasChanged(script!!)
             refresh()
         }
@@ -267,7 +350,7 @@ class MKConfigureInstalledComponent : BorderLayoutPanel() {
             val fileExtension: String = FileUtilRt.getExtension(filename)
             val editor = EditorFactory.getInstance().createEditor(
                 document,
-                null,
+                myProject,
                 FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
                 false
             )
@@ -314,6 +397,22 @@ class MKConfigureBrowserComponent : BorderLayoutPanel() {
         splitter.secondComponent = rightPanel
 
         add(splitter, BorderLayout.CENTER)
+
+        queryScripts()
+
     }
+
+    private fun queryScripts() {
+//        GlobalScope.launch {
+//            val result = runCatching {
+////                val response =
+////                    URL("https://raw.githubusercontent.com/Mount-Huaguo/MonkeyKingScripts/main/index.lua").readText()
+////                println("response: $response")
+//            }
+//
+//            println("result.isSuccess ${result.isSuccess}")
+//        }
+    }
+
 
 }
