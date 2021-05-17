@@ -5,7 +5,7 @@ import com.intellij.ide.ui.search.BooleanOptionDescription
 import com.intellij.ide.ui.search.OptionDescription
 import java.util.*
 
-
+// todo
 class ScriptTopHitProvider : OptionsSearchTopHitProvider.ApplicationLevelProvider {
 
     override fun getId(): String {

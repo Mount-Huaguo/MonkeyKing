@@ -3,7 +3,6 @@ package com.github.mounthuaguo.monkeyking.settings
 import com.intellij.icons.AllIcons
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.plugins.newui.PluginSearchTextField
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -24,32 +23,37 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
-import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.awt.RelativePoint
-import com.intellij.ui.components.JBLoadingPanel
+import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTabbedPane
-import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import java.awt.BorderLayout
-import java.awt.Dimension
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.luaj.vm2.lib.jse.JsePlatform
+import java.awt.*
+import java.net.URL
 import java.util.*
 import javax.swing.*
 
 
+const val fixedCellHeight = 30;
+
+
 class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
     private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
-    private val browserPanel = MKConfigureBrowserComponent()
+    private val browserPanel = MKConfigureBrowserComponent(myProject)
     private val installedPanel = MKConfigureInstalledComponent(myProject)
 
     init {
         tabbedPane.addTab("Installed", installedPanel)
         tabbedPane.addTab("Browser", browserPanel)
         tabbedPane.addChangeListener {
-            println("addChangeListener: $it")
+            println("tabbedPane.addChangeListener: $it, ${tabbedPane.selectedIndex}, ${tabbedPane.selectedComponent}")
+            if (tabbedPane.selectedIndex == 1) {
+                browserPanel.setupUI()
+            }
         }
         add(tabbedPane, BorderLayout.CENTER)
     }
@@ -157,7 +161,7 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         }.also { scriptListView = it }
         val scriptListModel = ScriptListModel(scripts)
         scriptListView.model = scriptListModel
-        scriptListView.fixedCellHeight = 30
+        scriptListView.fixedCellHeight = fixedCellHeight
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
         scriptListView.setCheckBoxListListener { index, value ->
             println("setCheckBoxListListener, $index, $value")
@@ -376,55 +380,131 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
     }
 }
 
-class MKConfigureBrowserComponent : BorderLayoutPanel() {
+class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() {
+
+    data class ScriptModel(val name: String, val language: String, val intro: String, val path: String) {}
 
     private val leftPanel = BorderLayoutPanel()
     private val rightPanel = BorderLayoutPanel()
     private val searchBar = PluginSearchTextField()
-    private val table = JBTable()
+    private val listView = JBList<ScriptModel>()
     private val splitter = JBSplitter()
+    private var scriptList = listOf<ScriptModel>()
+    private val luaEnv = JsePlatform.standardGlobals()
+    private var loadingDecorator: LoadingDecorator? = null
+    private val editor: Editor? = null
+    private var isLoad = false
 
-    init {
+    private val listViewModel = object : AbstractListModel<ScriptModel>() {
+        override fun getSize(): Int {
+            return scriptList.size
+        }
+
+        override fun getElementAt(index: Int): ScriptModel {
+            return scriptList[index]
+        }
+
+        fun refresh() {
+            this.fireContentsChanged(this, 0, scriptList.size)
+        }
+
+    }
+
+
+    fun setupUI() {
+        if (isLoad) {
+            return
+        }
         leftPanel.add(searchBar, BorderLayout.NORTH)
-        val scripts = ConfigureStateService.getInstance().getScripts()
-        table.model = ScriptTableModel(scripts.toMutableList())
-        table.setDefaultRenderer(ScriptTableModelCell::class.java, ScriptTableModelCell { i: Int, b: Boolean ->
-
-        })
-        table.rowHeight = 80
-        table.dragEnabled = false
-        table.isStriped = true
-        table.selectionModel = SingleSelectionModel()
-        table.setShowGrid(false)
-        table.autoscrolls = true
-        val loadingDecorator = LoadingDecorator(table, Disposable() {
-
-        }, 0)
-
-        val loading = JBLoadingPanel(null, Disposable { })
-        loading.startLoading()
-        leftPanel.add(loading, BorderLayout.CENTER)
-
+        setupListView()
+        loadingDecorator = LoadingDecorator(listView, {}, 0)
+        leftPanel.add(loadingDecorator!!.component, BorderLayout.CENTER)
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel
 
         add(splitter, BorderLayout.CENTER)
-
         queryScripts()
 
+        isLoad = true
     }
+
+    private fun setupListView() {
+        listView.model = listViewModel
+        listView.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        listView.fixedCellHeight = fixedCellHeight
+        listView.setCellRenderer { list, value, index, isSelected, cellHasFocus ->
+            val label = JLabel(value.name)
+            label.isOpaque = true
+            label.background = Color.white
+            if (isSelected) {
+                label.background = Color(38, 117, 191)
+            }
+            return@setCellRenderer label
+        }
+        listView.addListSelectionListener {
+            println("listView.addListSelectionListener $it")
+        }
+
+    }
+
+    fun setupRightPanel() {
+
+    }
+
+    fun createEditor() {
+
+    }
+
 
     private fun queryScripts() {
-//        GlobalScope.launch {
-//            val result = runCatching {
-////                val response =
-////                    URL("https://raw.githubusercontent.com/Mount-Huaguo/MonkeyKingScripts/main/index.lua").readText()
-////                println("response: $response")
-//            }
-//
-//            println("result.isSuccess ${result.isSuccess}")
-//        }
+        loadingDecorator!!.startLoading(false)
+        GlobalScope.launch {
+            runCatching {
+                val response =
+                    URL("https://raw.githubusercontent.com/Mount-Huaguo/MonkeyKingScripts/main/index.lua").readText()
+                println("response: $response")
+                handleScriptsResponse(response)
+                loadingDecorator!!.stopLoading()
+            }
+        }
     }
 
+    private fun handleScriptsResponse(response: String) {
+        val chuck = luaEnv.load(response)
+        val table = chuck.call().checktable()
+        table ?: return
+        val list = mutableListOf<ScriptModel>()
+        for (key in table.keys()) {
+            val value = table[key]
+            list.add(
+                ScriptModel(
+                    name = value["name"].checkstring().toString(),
+                    language = value["language"].checkstring().toString(),
+                    intro = value["intro"].checkstring().toString(),
+                    path = value["path"].checkstring().toString(),
+                )
+            )
+        }
+        println("handleScriptsResponse: $list")
+        scriptList = list
+        listViewModel.refresh()
+    }
+
+    private fun queryScriptDesc() {
+
+    }
+
+    private fun handleScriptDescResponse() {
+
+    }
+
+    private fun queryScriptSource() {
+
+    }
+
+
+    private fun handleScriptSourceResponse() {
+
+    }
 
 }
