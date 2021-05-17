@@ -25,7 +25,6 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
-import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.table.JBTable
@@ -59,7 +58,7 @@ class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel()
 
 class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayoutPanel() {
 
-    private var scriptListView: JBList<ScriptModel> = JBList()
+    private var scriptListView: CheckBoxList<ScriptModel> = CheckBoxList()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
     private val editorPanel = ScriptEditorPanel(myProject)
@@ -101,16 +100,21 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
         val scriptListModel = ScriptListModel(scripts)
         scriptListView.model = scriptListModel
-
-        scriptListView.installCellRenderer(ScriptListModelCell())
+        scriptListView.fixedCellHeight = 32
+        scriptListView.cellRenderer = ScriptListModelCell()
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        scriptListView.setCheckBoxListListener { index, value ->
+            println("setCheckBoxListListener, $index, $value")
+        }
         scriptListView.addListSelectionListener {
             println("addListSelectionListener $it")
             if (!it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
-            editorPanel.setScriptModel(scriptListModel.getElementAt(it.firstIndex))
+//            editorPanel.setScriptModel(scriptListModel.getElementAt(it.firstIndex))
         }
+
+//        val list = CheckBoxList
 
         mySpliterator.firstComponent = scriptListView
     }
@@ -204,13 +208,14 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         return true
     }
 
-
+    //    DefaultListCellRenderer
     private class ScriptEditorPanel(val myProject: Project) : JPanel(GridBagLayout()) {
 
         private var myScriptEditorPanel = BorderLayoutPanel()
         private var myScriptEditor: Editor? = null;
-        private var errorPanel: JEditorPane? = null;
+        private var myErrorPanel: JEditorPane? = null;
         private var myScriptModel: ScriptModel? = null;
+        private val mySpliterator = JBSplitter(true, 0.9f, 0.5f, 0.9f)
         private var luaFieType = FileTypeManager.getInstance().getFileTypeByExtension("lua")
         private var jsFileType = FileTypeManager.getInstance().getFileTypeByExtension("js")
 
@@ -221,25 +226,17 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         fun setupUI() {
             val panel = JEditorPane()
             panel.editorKit = UIUtil.getHTMLEditorKit()
-            panel.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
             panel.isEditable = false
             panel.addHyperlinkListener(BrowserHyperlinkListener())
-            errorPanel = panel
+            myErrorPanel = panel
 
             val errorComponent = ScrollPaneFactory.createScrollPane(panel)
+            mySpliterator.secondComponent = errorComponent
 
             this.add(
-                myScriptEditorPanel,
+                mySpliterator,
                 GridBagConstraints(
-                    0, 0, 1, 1, 1.0, 0.9,
-                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-                )
-            )
-
-            this.add(
-                errorComponent,
-                GridBagConstraints(
-                    0, 1, 1, 1, 1.0, 0.1,
+                    0, 0, 1, 1, 1.0, 1.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
                 )
             )
@@ -256,42 +253,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
                 EditorFactory.getInstance().releaseEditor(myScriptEditor!!);
             }
             myScriptEditor = createEditor()
-
-            errorPanel?.let {
-                errorPanel!!.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
-            }
-            // error
-//            val panel = JEditorPane()
-//            panel.editorKit = UIUtil.getHTMLEditorKit()
-//            panel.text = "<html><body>" + (myScriptModel?.raw ?: "") + "</body></html>"
-//            panel.isEditable = false
-//            panel.addHyperlinkListener(BrowserHyperlinkListener())
-//            errorPanel = panel
-//
-//            val errorComponent = ScrollPaneFactory.createScrollPane(panel)
-
-//            this.add(
-//                myScriptEditor!!.component,
-//                GridBagConstraints(
-//                    0, 0, 1, 1, 1.0, 0.9,
-//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-//                )
-//            )
-//            this.add(
-//                myScriptEditorPanel,
-//                GridBagConstraints(
-//                    0, 0, 1, 1, 1.0, 0.9,
-//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-//                )
-//            )
-//
-//            this.add(
-//                errorComponent,
-//                GridBagConstraints(
-//                    0, 1, 1, 1, 1.0, 0.1,
-//                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-//                )
-//            )
             this.revalidate()
             this.repaint()
         }
@@ -313,14 +274,24 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
             editor.document.addDocumentListener(object : DocumentListener {
                 override fun documentChanged(e: DocumentEvent) {
-                    // todo
+                    scriptHasChanged()
                 }
             }, (editor as EditorImpl).disposable)
-
-//            this.add(editor.component, BorderLayout.CENTER)
             myScriptEditorPanel.removeAll()
             myScriptEditorPanel.add(editor.component, BorderLayout.CENTER)
+            mySpliterator.firstComponent = myScriptEditorPanel
             return editor
+        }
+
+        private fun scriptHasChanged() {
+            val text = myScriptEditor?.document?.text
+            val scriptModel = text?.let { ScriptModel(myScriptModel?.language ?: "lua", it) }
+            val errorMessage = scriptModel?.validate()
+            errorMessage?.let {
+                myErrorPanel?.text = """
+                   $errorMessage 
+                """.trimIndent()
+            }
         }
 
         private fun createDocument(): Document {
@@ -340,7 +311,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             val file = PsiFileFactory.getInstance(myProject).createFileFromText("$name.txt.ft", fileType, text, 0, true)
             val properties = Properties()
             properties.putAll(FileTemplateManager.getInstance(myProject).defaultProperties)
-//            properties.setProperty(FileTemplate.ATTRIBUTE_NAME, IdeBundle.message("name.variable"))
             file.viewProvider.putUserData(FileTemplateManager.DEFAULT_TEMPLATE_PROPERTIES, properties)
             return file
         }
