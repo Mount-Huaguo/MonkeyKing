@@ -32,7 +32,10 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Dimension
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.util.*
 import javax.swing.*
 
@@ -81,6 +84,8 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
     // script list view
     private fun setupScriptListView() {
+        setupListView()
+
         val toolbar = ToolbarDecorator.createDecorator(scriptListView)
         toolbar.setActionGroup(anActionGroup())
         toolbar.disableAddAction()
@@ -93,23 +98,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
         val listPanel = toolbar.createPanel()
         mySpliterator.firstComponent = listPanel
-
-        setupListView()
-        val scriptListModel = ScriptListModel(scripts)
-        scriptListView.model = scriptListModel
-        scriptListView.fixedCellHeight = 32
-        scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
-        scriptListView.setCheckBoxListListener { index, value ->
-            println("setCheckBoxListListener, $index, $value")
-        }
-        scriptListView.addListSelectionListener {
-            println("addListSelectionListener $it")
-            if (!it.valueIsAdjusting) {
-                return@addListSelectionListener
-            }
-        }
-
-        mySpliterator.firstComponent = scriptListView
     }
 
 
@@ -122,34 +110,65 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
                 selected: Boolean,
                 hasFocus: Boolean
             ): JComponent {
-                val panel = JPanel(BorderLayout())
+                val panel = JPanel(GridBagLayout())
                 panel.border = BorderFactory.createEmptyBorder()
-                val label = JLabel(AllIcons.FileTypes.JavaScript)
+
+                panel.add(
+                    checkBox,
+                    GridBagConstraints(
+                        0, 0, 1, 1, 0.0, 0.0,
+                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+                    )
+                )
+
+                val icon = JLabel(AllIcons.FileTypes.JavaScript)
+                icon.isOpaque = true
+                icon.preferredSize = Dimension(25, -1)
+                icon.horizontalAlignment = SwingConstants.CENTER
+                icon.background = getBackground(selected)
+
+                panel.add(
+                    icon,
+                    GridBagConstraints(
+                        1, 0, 1, 1, 0.0, 0.0,
+                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+                    )
+                )
+
+                val label = JLabel("This coupon is available within the validity")
                 label.isOpaque = true
-                label.preferredSize = Dimension(25, -1)
-                label.horizontalAlignment = SwingConstants.CENTER
-                panel.add(label, BorderLayout.CENTER)
-                panel.add(checkBox, BorderLayout.WEST)
-                panel.background = getBackground(false)
+                label.preferredSize = Dimension(100, -1)
                 label.background = getBackground(selected)
+                panel.add(
+                    label,
+                    GridBagConstraints(
+                        2, 0, 1, 1, 1.0, 1.0,
+                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+                    )
+                )
+
+                panel.background = getBackground(false)
                 if (!checkBox.isOpaque) {
                     checkBox.isOpaque = true
                 }
                 checkBox.border = null
-
-                val nameLabel = JLabel("This coupon is available within the validity")
-                nameLabel.isOpaque = true
-                nameLabel.preferredSize = Dimension(100, -1)
-                nameLabel.maximumSize = Dimension(120, -1)
-                nameLabel.background = getBackground(selected)
-                panel.add(nameLabel, BorderLayout.EAST)
                 return panel
             }
-
-            override fun findPointRelativeToCheckBox(x: Int, y: Int, checkBox: JCheckBox, index: Int): Point? {
-                return super.findPointRelativeToCheckBoxWithAdjustedRendering(x, y, checkBox, index)
-            }
         }.also { scriptListView = it }
+        val scriptListModel = ScriptListModel(scripts)
+        scriptListView.model = scriptListModel
+        scriptListView.fixedCellHeight = 30
+        scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
+        scriptListView.setCheckBoxListListener { index, value ->
+            println("setCheckBoxListListener, $index, $value")
+        }
+        scriptListView.addListSelectionListener {
+            println("addListSelectionListener $it")
+            if (!it.valueIsAdjusting) {
+                return@addListSelectionListener
+            }
+        }
+
     }
 
     private fun setupEditorView() {
