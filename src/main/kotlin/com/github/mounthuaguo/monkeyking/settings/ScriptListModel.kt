@@ -1,11 +1,8 @@
 package com.github.mounthuaguo.monkeyking.settings
 
-import com.intellij.icons.AllIcons
 import java.awt.Component
-import javax.swing.AbstractListModel
-import javax.swing.JCheckBox
-import javax.swing.JList
-import javax.swing.ListCellRenderer
+import java.awt.GridBagLayout
+import javax.swing.*
 
 class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>() {
     private val myScriptModels = scripts.toMutableList()
@@ -15,24 +12,34 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
     }
 
     override fun getElementAt(index: Int): JCheckBox {
-        return JCheckBox(myScriptModels[index].name, AllIcons.FileTypes.JavaScript, true)
+        return JCheckBox()
+//        return JCheckBox(myScriptModels[index].name, AllIcons.FileTypes.JavaScript, true)
     }
 
 }
 
-class ScriptListModelCell : ListCellRenderer<JCheckBox> {
-
-    override fun getListCellRendererComponent(
-        list: JList<out JCheckBox>?,
-        value: JCheckBox?,
-        index: Int,
-        isSelected: Boolean,
-        cellHasFocus: Boolean
-    ): Component {
-//        value?.let {
-//            value.isSelected = index % 2 == 0
-//        }
-        return value!!
-    }
-
-}
+//class ScriptListModelCell : ListCellRenderer<JCheckBox> {
+//
+//    override fun getListCellRendererComponent(
+//        list: JList<out JCheckBox>?,
+//        value: JCheckBox?,
+//        index: Int,
+//        isSelected: Boolean,
+//        cellHasFocus: Boolean
+//    ): Component {
+////        val panel = JPanel(GridBagLayout())
+////        panel.border = BorderFactory.createEmptyBorder();
+////        panel.isOpaque = true
+////        panel.add(value!!, BorderLayout.EAST)
+////        val label = JBLabel(AllIcons.FileTypes.Css)
+////        label.isOpaque = true
+////        panel.add(label, BorderLayout.WEST)
+////        val l = JBLabel("hello world hello world hello world")
+////        l.maximumSize = JBUI.size(60, 20)
+////        l.isOpaque = true
+////        panel.add(l, BorderLayout.CENTER)
+////        value.isOpaque = true
+////        return panel
+//    }
+//
+//}

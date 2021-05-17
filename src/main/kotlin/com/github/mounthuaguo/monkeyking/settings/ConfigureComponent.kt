@@ -24,6 +24,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
+import com.intellij.ui.SingleSelectionModel
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLoadingPanel
 import com.intellij.ui.components.JBTabbedPane
@@ -31,14 +32,9 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import java.awt.BorderLayout
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
+import java.awt.*
 import java.util.*
-import javax.swing.JEditorPane
-import javax.swing.JPanel
-import javax.swing.JTabbedPane
-import javax.swing.ListSelectionModel
+import javax.swing.*
 
 
 class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
@@ -98,10 +94,10 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         val listPanel = toolbar.createPanel()
         mySpliterator.firstComponent = listPanel
 
+        setupListView()
         val scriptListModel = ScriptListModel(scripts)
         scriptListView.model = scriptListModel
         scriptListView.fixedCellHeight = 32
-        scriptListView.cellRenderer = ScriptListModelCell()
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
         scriptListView.setCheckBoxListListener { index, value ->
             println("setCheckBoxListListener, $index, $value")
@@ -111,12 +107,49 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             if (!it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
-//            editorPanel.setScriptModel(scriptListModel.getElementAt(it.firstIndex))
         }
 
-//        val list = CheckBoxList
-
         mySpliterator.firstComponent = scriptListView
+    }
+
+
+    private fun setupListView() {
+        object : CheckBoxList<ScriptModel>() {
+            override fun adjustRendering(
+                rootComponent: JComponent,
+                checkBox: JCheckBox,
+                index: Int,
+                selected: Boolean,
+                hasFocus: Boolean
+            ): JComponent {
+                val panel = JPanel(BorderLayout())
+                panel.border = BorderFactory.createEmptyBorder()
+                val label = JLabel(AllIcons.FileTypes.JavaScript)
+                label.isOpaque = true
+                label.preferredSize = Dimension(25, -1)
+                label.horizontalAlignment = SwingConstants.CENTER
+                panel.add(label, BorderLayout.CENTER)
+                panel.add(checkBox, BorderLayout.WEST)
+                panel.background = getBackground(false)
+                label.background = getBackground(selected)
+                if (!checkBox.isOpaque) {
+                    checkBox.isOpaque = true
+                }
+                checkBox.border = null
+
+                val nameLabel = JLabel("This coupon is available within the validity")
+                nameLabel.isOpaque = true
+                nameLabel.preferredSize = Dimension(100, -1)
+                nameLabel.maximumSize = Dimension(120, -1)
+                nameLabel.background = getBackground(selected)
+                panel.add(nameLabel, BorderLayout.EAST)
+                return panel
+            }
+
+            override fun findPointRelativeToCheckBox(x: Int, y: Int, checkBox: JCheckBox, index: Int): Point? {
+                return super.findPointRelativeToCheckBoxWithAdjustedRendering(x, y, checkBox, index)
+            }
+        }.also { scriptListView = it }
     }
 
     private fun setupEditorView() {
