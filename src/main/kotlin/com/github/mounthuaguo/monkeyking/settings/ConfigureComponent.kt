@@ -1,5 +1,6 @@
 package com.github.mounthuaguo.monkeyking.settings
 
+import com.github.mounthuaguo.monkeyking.MKBundle
 import com.intellij.icons.AllIcons
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.plugins.newui.PluginSearchTextField
@@ -24,6 +25,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.ui.JBUI
@@ -186,6 +188,7 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
                 val script = ScriptModel("lua")
+                (scriptListView.model as ScriptListModel).add(script)
             }
         }
 
@@ -193,6 +196,7 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             override fun actionPerformed(e: AnActionEvent) {
                 println("action1 actionPerformed ${e}")
                 val script = ScriptModel("js")
+                (scriptListView.model as ScriptListModel).add(script)
             }
         }
 
@@ -209,7 +213,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
                     JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
                     false
                 );
-//                println(" toolbarDecorator.actionsPanel.position, ${toolbarDecorator.actionsPanel.position}")
                 popup.show(RelativePoint.getSouthWestOf(toolbarDecorator!!.actionsPanel))
             }
         }
@@ -222,6 +225,10 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
         val removeAction: AnAction = object : DumbAwareAction(AllIcons.General.Remove) {
             override fun actionPerformed(e: AnActionEvent) {
+                if (scriptListView.selectedIndex < 0) {
+                    return
+                }
+                (scriptListView.model as ScriptListModel).remove(scriptListView.selectedIndex)
             }
         }
 
@@ -380,9 +387,13 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
     }
 }
 
-class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() {
+class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayoutPanel() {
 
-    data class ScriptModel(val name: String, val language: String, val intro: String, val path: String) {}
+    data class ScriptModel(val name: String, val language: String, val intro: String, val source: String) {
+        fun invalid(): Boolean {
+            return name == "" || language == "" || source == ""
+        }
+    }
 
     private val leftPanel = BorderLayoutPanel()
     private val rightPanel = BorderLayoutPanel()
@@ -392,8 +403,11 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
     private var scriptList = listOf<ScriptModel>()
     private var scriptRepo = listOf<ScriptModel>()
     private val luaEnv = JsePlatform.standardGlobals()
-    private var loadingDecorator: LoadingDecorator? = null
-    private val editor: Editor? = null
+    private var scriptLoadingDecorator: LoadingDecorator? = null
+    private var introLoadingDecorator: LoadingDecorator? = null
+    private var nameLabel = JBLabel()
+    private var editorPanel = BorderLayoutPanel()
+    private var editor: Editor? = null
     private var isLoad = false
     private var introPanel = JEditorPane()
 
@@ -414,7 +428,8 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
 
     init {
         splitter.firstComponent = leftPanel
-        splitter.secondComponent = rightPanel
+        introLoadingDecorator = LoadingDecorator(rightPanel, {}, 0)
+        splitter.secondComponent = introLoadingDecorator!!.component
     }
 
 
@@ -423,19 +438,18 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
             loadScripts()
             return
         }
-
-        leftPanel.add(searchBar, BorderLayout.NORTH)
-        setupListView()
-        loadingDecorator = LoadingDecorator(listView, {}, 0)
-        leftPanel.add(loadingDecorator!!.component, BorderLayout.CENTER)
-
-        add(splitter, BorderLayout.CENTER)
-
-        setupRightPanel()
-
+        setupFirstPanel()
+        setupSecondPanel()
         isLoad = true
         loadScripts()
+    }
 
+    private fun setupFirstPanel() {
+        leftPanel.add(searchBar, BorderLayout.NORTH)
+        setupListView()
+        scriptLoadingDecorator = LoadingDecorator(listView, {}, 0)
+        leftPanel.add(scriptLoadingDecorator!!.component, BorderLayout.CENTER)
+        add(splitter, BorderLayout.CENTER)
     }
 
     private fun setupListView() {
@@ -453,93 +467,86 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
         }
         listView.addListSelectionListener {
             println("listView.addListSelectionListener $it")
+            reloadSecondPanel(listView.selectedIndex, scriptList[listView.selectedIndex])
         }
-
     }
 
-    private fun setupRightPanel() {
+    private fun setupSecondPanel() {
         val gridBagPanel = JPanel(GridBagLayout())
-
+        val headerPanel = BorderLayoutPanel()
+        val useButton = JButton("use")
+        headerPanel.add(nameLabel, BorderLayout.CENTER)
+        headerPanel.add(useButton, BorderLayout.SOUTH)
         val panel = JEditorPane()
         panel.editorKit = UIUtil.getHTMLEditorKit()
         panel.isEditable = false
         panel.addHyperlinkListener(BrowserHyperlinkListener())
         introPanel = panel
-        panel.text = """
-            <div>
-            hello image test
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-                        <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-            <div>
-            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
-            </div>
-        """.trimIndent()
-
-
-        val editor = createEditor()
 
         gridBagPanel.add(
-            panel,
+            headerPanel,
             GridBagConstraints(
                 0, 0, 1, 1, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
             )
         )
 
-
         gridBagPanel.add(
-            editor.component,
+            panel,
             GridBagConstraints(
                 0, 1, 1, 1, 1.0, 1.0,
                 GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
             )
         )
+
+        gridBagPanel.add(
+            editorPanel,
+            GridBagConstraints(
+                0, 2, 1, 1, 1.0, 1.0,
+                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+            )
+        )
+
         val scrollView = ScrollPaneFactory.createScrollPane(gridBagPanel)
         scrollView.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER;
         rightPanel.add(scrollView, BorderLayout.CENTER)
-
     }
 
-    private fun createEditor(): Editor {
-        val editorFactory = EditorFactory.getInstance()
-        val doc: Document = EditorFactory.getInstance().createDocument(
-            """
-            
-            long text
-            long text
-            long text
-            long text
-            long text
-            long text
-            long text
-            
-        """.trimIndent()
-        )
-        val editor = editorFactory.createEditor(doc, myProject)
+    private fun reloadSecondPanel(index: Int, scriptModel: ScriptModel) {
+        introLoadingDecorator!!.startLoading(true)
+        GlobalScope.launch {
+            runCatching {
+                val intro = URL(scriptModel.intro).readText()
+                println("intro: $intro")
+                val source = URL(scriptModel.source).readText()
+                println("source: $source")
 
+                // todo should check list has not changed
+                if (index != listView.selectedIndex) {
+                    return@launch
+                }
+                resetSecondPanel(index, scriptModel, intro, source)
+                introLoadingDecorator!!.stopLoading()
+            }
+        }
+    }
+
+    private fun resetSecondPanel(index: Int, scriptModel: ScriptModel, intro: String, source: String) {
+        nameLabel.text = scriptModel.name
+        introPanel.text = intro
+        editor?.let {
+            editorPanel.remove(editor!!.component)
+            // todo release editor
+        }
+        editor = createEditor(source)
+        editorPanel.add(editor!!.component, BorderLayout.CENTER)
+    }
+
+
+    private fun createEditor(text: String): Editor {
+        val editorFactory = EditorFactory.getInstance()
+        val doc: Document = EditorFactory.getInstance().createDocument(text)
+        val editor = editorFactory.createEditor(doc, myProject)
         val editorSettings = editor.settings
         editorSettings.isVirtualSpace = false
         editorSettings.isLineMarkerAreaShown = false
@@ -549,10 +556,12 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
         editorSettings.additionalColumnsCount = 3
         editorSettings.additionalLinesCount = 3
         editorSettings.isCaretRowShown = false
-
         return editor
     }
 
+    private fun reset() {
+
+    }
 
     private fun loadScripts() {
         if (scriptRepo.isNotEmpty()) {
@@ -562,15 +571,18 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
     }
 
     private fun queryScripts() {
-        loadingDecorator!!.startLoading(false)
+        scriptLoadingDecorator!!.startLoading(false)
         GlobalScope.launch {
-            runCatching {
-                val response =
-                    URL("https://raw.githubusercontent.com/Mount-Huaguo/MonkeyKingScripts/main/index.lua").readText()
+            val result = runCatching {
+                val url = MKBundle.message("repositoryBaseUrl") + MKBundle.message("repositoryPath")
+                val response = URL(url).readText()
                 println("response: $response")
                 handleScriptsResponse(response)
-                loadingDecorator!!.stopLoading()
             }
+            if (result.isFailure) {
+                println(result)
+            }
+            scriptLoadingDecorator!!.stopLoading()
         }
     }
 
@@ -581,36 +593,20 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
         val list = mutableListOf<ScriptModel>()
         for (key in table.keys()) {
             val value = table[key]
-            list.add(
-                ScriptModel(
-                    name = value["name"].checkstring().toString(),
-                    language = value["language"].checkstring().toString(),
-                    intro = value["intro"].checkstring().toString(),
-                    path = value["path"].checkstring().toString(),
-                )
+            val sm = ScriptModel(
+                name = if (value["name"].isnil()) "" else value["name"].toString(),
+                language = if (value["language"].isnil()) "" else value["language"].toString(),
+                intro = if (value["intro"].isnil()) "" else value["intro"].toString(),
+                source = if (value["source"].isnil()) "" else value["source"].toString(),
             )
+            if (sm.invalid()) {
+                continue
+            }
+            list.add(sm)
         }
         println("handleScriptsResponse: $list")
         scriptRepo = list.toList()
         scriptList = list.toList()
         listViewModel.refresh()
     }
-
-    private fun queryScriptDesc() {
-
-    }
-
-    private fun handleScriptDescResponse() {
-
-    }
-
-    private fun queryScriptSource() {
-
-    }
-
-
-    private fun handleScriptSourceResponse() {
-
-    }
-
 }
