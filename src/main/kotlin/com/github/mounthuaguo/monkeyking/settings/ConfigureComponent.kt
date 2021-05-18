@@ -8,6 +8,8 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -396,7 +398,6 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
     }
 
     private val leftPanel = BorderLayoutPanel()
-    private val rightPanel = BorderLayoutPanel()
     private val searchBar = PluginSearchTextField()
     private val listView = JBList<ScriptModel>()
     private val splitter = JBSplitter()
@@ -404,12 +405,8 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
     private var scriptRepo = listOf<ScriptModel>()
     private val luaEnv = JsePlatform.standardGlobals()
     private var scriptLoadingDecorator: LoadingDecorator? = null
-    private var introLoadingDecorator: LoadingDecorator? = null
-    private var nameLabel = JBLabel()
-    private var editorPanel = BorderLayoutPanel()
-    private var editor: Editor? = null
     private var isLoad = false
-    private var introPanel = JEditorPane()
+    private var rightPanel = RightPanel(myProject)
 
     private val listViewModel = object : AbstractListModel<ScriptModel>() {
         override fun getSize(): Int {
@@ -428,10 +425,8 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
 
     init {
         splitter.firstComponent = leftPanel
-        introLoadingDecorator = LoadingDecorator(rightPanel, {}, 0)
-        splitter.secondComponent = introLoadingDecorator!!.component
+        splitter.secondComponent = rightPanel.component()
     }
-
 
     fun setupUI() {
         if (isLoad) {
@@ -439,7 +434,6 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
             return
         }
         setupFirstPanel()
-        setupSecondPanel()
         isLoad = true
         loadScripts()
     }
@@ -467,96 +461,40 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         }
         listView.addListSelectionListener {
             println("listView.addListSelectionListener $it")
+            if (it.valueIsAdjusting) {
+                return@addListSelectionListener
+            }
             reloadSecondPanel(listView.selectedIndex, scriptList[listView.selectedIndex])
         }
     }
 
-    private fun setupSecondPanel() {
-        val gridBagPanel = JPanel(GridBagLayout())
-        val headerPanel = BorderLayoutPanel()
-        val useButton = JButton("use")
-        headerPanel.add(nameLabel, BorderLayout.CENTER)
-        headerPanel.add(useButton, BorderLayout.SOUTH)
-        val panel = JEditorPane()
-        panel.editorKit = UIUtil.getHTMLEditorKit()
-        panel.isEditable = false
-        panel.addHyperlinkListener(BrowserHyperlinkListener())
-        introPanel = panel
-
-        gridBagPanel.add(
-            headerPanel,
-            GridBagConstraints(
-                0, 0, 1, 1, 1.0, 1.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-            )
-        )
-
-        gridBagPanel.add(
-            panel,
-            GridBagConstraints(
-                0, 1, 1, 1, 1.0, 1.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-            )
-        )
-
-        gridBagPanel.add(
-            editorPanel,
-            GridBagConstraints(
-                0, 2, 1, 1, 1.0, 1.0,
-                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
-            )
-        )
-
-        val scrollView = ScrollPaneFactory.createScrollPane(gridBagPanel)
-        scrollView.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER;
-        rightPanel.add(scrollView, BorderLayout.CENTER)
-    }
-
     private fun reloadSecondPanel(index: Int, scriptModel: ScriptModel) {
-        introLoadingDecorator!!.startLoading(true)
-        GlobalScope.launch {
-            runCatching {
-                val intro = URL(scriptModel.intro).readText()
+        rightPanel.startLoading()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+
+                var intro = ""
+                if (scriptModel.intro != "") {
+                    val introUrl = MKBundle.message("repositoryBaseUrl") + "/" + scriptModel.intro
+                    intro = URL(introUrl).readText()
+                }
                 println("intro: $intro")
-                val source = URL(scriptModel.source).readText()
+                val sourceUrl = MKBundle.message("repositoryBaseUrl") + "/" + scriptModel.source
+                val source = URL(sourceUrl).readText()
                 println("source: $source")
 
-                // todo should check list has not changed
-                if (index != listView.selectedIndex) {
-                    return@launch
-                }
-                resetSecondPanel(index, scriptModel, intro, source)
-                introLoadingDecorator!!.stopLoading()
+                ApplicationManager.getApplication().invokeLater({
+                    assert(SwingUtilities.isEventDispatchThread())
+                    println(" ApplicationManager.getApplication, $source, $intro")
+                    rightPanel.stopLoading()
+                    rightPanel.reset(source, intro)
+                }, ModalityState.any())
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+                rightPanel.stopLoading()
             }
         }
-    }
-
-    private fun resetSecondPanel(index: Int, scriptModel: ScriptModel, intro: String, source: String) {
-        nameLabel.text = scriptModel.name
-        introPanel.text = intro
-        editor?.let {
-            editorPanel.remove(editor!!.component)
-            // todo release editor
-        }
-        editor = createEditor(source)
-        editorPanel.add(editor!!.component, BorderLayout.CENTER)
-    }
-
-
-    private fun createEditor(text: String): Editor {
-        val editorFactory = EditorFactory.getInstance()
-        val doc: Document = EditorFactory.getInstance().createDocument(text)
-        val editor = editorFactory.createEditor(doc, myProject)
-        val editorSettings = editor.settings
-        editorSettings.isVirtualSpace = false
-        editorSettings.isLineMarkerAreaShown = false
-        editorSettings.isIndentGuidesShown = false
-        editorSettings.isLineNumbersShown = false
-        editorSettings.isFoldingOutlineShown = false
-        editorSettings.additionalColumnsCount = 3
-        editorSettings.additionalLinesCount = 3
-        editorSettings.isCaretRowShown = false
-        return editor
     }
 
     private fun reset() {
@@ -609,4 +547,103 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         scriptList = list.toList()
         listViewModel.refresh()
     }
+
+    inner class RightPanel(private val myProject: Project) {
+
+        private val mainPanel = BorderLayoutPanel()
+        private val spliterator = JBSplitter(true, 0.7f, 0.4f, 0.9f)
+        private var editor: Editor? = null;
+        private var editorPanel = BorderLayoutPanel()
+        private var descriptionPanel = JEditorPane()
+        private var loadingDecorator = LoadingDecorator(mainPanel, {}, 0)
+        private var viewWasLoaded = false;
+
+        private fun setupUI() {
+            if (viewWasLoaded) {
+                return
+            }
+
+            // desc panel
+            val panel = JPanel(GridBagLayout())
+
+            // description top panel
+            val topPanel = BorderLayoutPanel()
+            val label = JBLabel("Description")
+            topPanel.add(label, BorderLayout.CENTER)
+            val button = JButton("use")
+            topPanel.add(button, BorderLayout.EAST)
+            panel.add(
+                topPanel,
+                GridBagConstraints(
+                    0, 0, 1, 1, 1.0, 0.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+                )
+            )
+
+            // description detail panel
+            descriptionPanel.editorKit = UIUtil.getHTMLEditorKit()
+            descriptionPanel.isEditable = false
+            descriptionPanel.addHyperlinkListener(BrowserHyperlinkListener())
+
+            panel.add(
+                ScrollPaneFactory.createScrollPane(descriptionPanel),
+                GridBagConstraints(
+                    0, 1, 1, 1, 1.0, 1.0,
+                    GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+                )
+            )
+
+            spliterator.firstComponent = editorPanel
+            spliterator.secondComponent = panel
+            mainPanel.add(spliterator, BorderLayout.CENTER)
+
+            resetEditor("unselected")
+            viewWasLoaded = true
+        }
+
+        private fun resetEditor(source: String) {
+            if (editor != null) {
+                EditorFactory.getInstance().releaseEditor(editor!!)
+            }
+            editor = createEditor(source)
+            editorPanel.removeAll()
+            editorPanel.add(editor!!.component, BorderLayout.CENTER)
+        }
+
+        fun startLoading() {
+            loadingDecorator.startLoading(false)
+        }
+
+        fun stopLoading() {
+            loadingDecorator.stopLoading()
+        }
+
+        fun reset(source: String, description: String) {
+            setupUI()
+            println("reset: $source, $description")
+            resetEditor(source)
+            descriptionPanel.text = description
+        }
+
+        private fun createEditor(text: String): Editor {
+            val editorFactory = EditorFactory.getInstance()
+            val doc: Document = EditorFactory.getInstance().createDocument(text)
+            val editor = editorFactory.createEditor(doc, myProject)
+            val editorSettings = editor.settings
+            editorSettings.isVirtualSpace = false
+            editorSettings.isLineMarkerAreaShown = false
+            editorSettings.isIndentGuidesShown = false
+            editorSettings.isLineNumbersShown = false
+            editorSettings.isFoldingOutlineShown = false
+            editorSettings.additionalColumnsCount = 3
+            editorSettings.additionalLinesCount = 3
+            editorSettings.isCaretRowShown = false
+            return editor
+        }
+
+        fun component(): JComponent {
+            return loadingDecorator.component
+        }
+    }
+
 }
