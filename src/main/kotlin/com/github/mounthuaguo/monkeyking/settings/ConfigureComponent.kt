@@ -390,10 +390,12 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
     private val listView = JBList<ScriptModel>()
     private val splitter = JBSplitter()
     private var scriptList = listOf<ScriptModel>()
+    private var scriptRepo = listOf<ScriptModel>()
     private val luaEnv = JsePlatform.standardGlobals()
     private var loadingDecorator: LoadingDecorator? = null
     private val editor: Editor? = null
     private var isLoad = false
+    private var introPanel = JEditorPane()
 
     private val listViewModel = object : AbstractListModel<ScriptModel>() {
         override fun getSize(): Int {
@@ -410,22 +412,30 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
 
     }
 
+    init {
+        splitter.firstComponent = leftPanel
+        splitter.secondComponent = rightPanel
+    }
+
 
     fun setupUI() {
         if (isLoad) {
+            loadScripts()
             return
         }
+
         leftPanel.add(searchBar, BorderLayout.NORTH)
         setupListView()
         loadingDecorator = LoadingDecorator(listView, {}, 0)
         leftPanel.add(loadingDecorator!!.component, BorderLayout.CENTER)
-        splitter.firstComponent = leftPanel
-        splitter.secondComponent = rightPanel
 
         add(splitter, BorderLayout.CENTER)
-        queryScripts()
+
+        setupRightPanel()
 
         isLoad = true
+        loadScripts()
+
     }
 
     private fun setupListView() {
@@ -447,14 +457,109 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
 
     }
 
-    fun setupRightPanel() {
+    private fun setupRightPanel() {
+        val gridBagPanel = JPanel(GridBagLayout())
+
+        val panel = JEditorPane()
+        panel.editorKit = UIUtil.getHTMLEditorKit()
+        panel.isEditable = false
+        panel.addHyperlinkListener(BrowserHyperlinkListener())
+        introPanel = panel
+        panel.text = """
+            <div>
+            hello image test
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+                        <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+            <div>
+            <img src="https://imageproxy.willnorris.com/100/https:/willnorris.com/2013/12/small-things.jpg" />
+            </div>
+        """.trimIndent()
+
+
+        val editor = createEditor()
+
+        gridBagPanel.add(
+            panel,
+            GridBagConstraints(
+                0, 0, 1, 1, 1.0, 1.0,
+                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+            )
+        )
+
+
+        gridBagPanel.add(
+            editor.component,
+            GridBagConstraints(
+                0, 1, 1, 1, 1.0, 1.0,
+                GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+            )
+        )
+        val scrollView = ScrollPaneFactory.createScrollPane(gridBagPanel)
+        scrollView.horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER;
+        rightPanel.add(scrollView, BorderLayout.CENTER)
 
     }
 
-    fun createEditor() {
+    private fun createEditor(): Editor {
+        val editorFactory = EditorFactory.getInstance()
+        val doc: Document = EditorFactory.getInstance().createDocument(
+            """
+            
+            long text
+            long text
+            long text
+            long text
+            long text
+            long text
+            long text
+            
+        """.trimIndent()
+        )
+        val editor = editorFactory.createEditor(doc, myProject)
 
+        val editorSettings = editor.settings
+        editorSettings.isVirtualSpace = false
+        editorSettings.isLineMarkerAreaShown = false
+        editorSettings.isIndentGuidesShown = false
+        editorSettings.isLineNumbersShown = false
+        editorSettings.isFoldingOutlineShown = false
+        editorSettings.additionalColumnsCount = 3
+        editorSettings.additionalLinesCount = 3
+        editorSettings.isCaretRowShown = false
+
+        return editor
     }
 
+
+    private fun loadScripts() {
+        if (scriptRepo.isNotEmpty()) {
+            return
+        }
+        queryScripts()
+    }
 
     private fun queryScripts() {
         loadingDecorator!!.startLoading(false)
@@ -486,7 +591,8 @@ class MKConfigureBrowserComponent(val myProject: Project) : BorderLayoutPanel() 
             )
         }
         println("handleScriptsResponse: $list")
-        scriptList = list
+        scriptRepo = list.toList()
+        scriptList = list.toList()
         listViewModel.refresh()
     }
 
