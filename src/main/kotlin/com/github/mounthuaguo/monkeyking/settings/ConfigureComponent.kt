@@ -406,7 +406,9 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
     private val luaEnv = JsePlatform.standardGlobals()
     private var scriptLoadingDecorator: LoadingDecorator? = null
     private var isLoad = false
-    private var rightPanel = RightPanel(myProject)
+    private var rightPanel = RightPanel(myProject) {
+        // todo use button on click
+    }
 
     private val listViewModel = object : AbstractListModel<ScriptModel>() {
         override fun getSize(): Int {
@@ -487,12 +489,13 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
                     assert(SwingUtilities.isEventDispatchThread())
                     println(" ApplicationManager.getApplication, $source, $intro")
                     rightPanel.stopLoading()
-                    rightPanel.reset(source, intro)
+                    rightPanel.reset(source, intro, scriptModel)
                 }, ModalityState.any())
 
             } catch (e: Exception) {
                 e.printStackTrace()
                 rightPanel.stopLoading()
+                // todo show error message
             }
         }
     }
@@ -548,7 +551,10 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         listViewModel.refresh()
     }
 
-    inner class RightPanel(private val myProject: Project) {
+    inner class RightPanel(
+        private val myProject: Project,
+        private val useButtonOnClick: (source: String) -> Unit
+    ) {
 
         private val mainPanel = BorderLayoutPanel()
         private val spliterator = JBSplitter(true, 0.7f, 0.4f, 0.9f)
@@ -556,6 +562,7 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         private var editorPanel = BorderLayoutPanel()
         private var descriptionPanel = JEditorPane()
         private var loadingDecorator = LoadingDecorator(mainPanel, {}, 0)
+        private var myScriptModel: ScriptModel? = null;
         private var viewWasLoaded = false;
 
         private fun setupUI() {
@@ -571,6 +578,11 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
             val label = JBLabel("Description")
             topPanel.add(label, BorderLayout.CENTER)
             val button = JButton("use")
+            button.addActionListener {
+                editor?.let {
+                    useButtonOnClick(editor!!.document.text)
+                }
+            }
             topPanel.add(button, BorderLayout.EAST)
             panel.add(
                 topPanel,
@@ -618,16 +630,19 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
             loadingDecorator.stopLoading()
         }
 
-        fun reset(source: String, description: String) {
+        fun reset(source: String, description: String, model: ScriptModel) {
             setupUI()
             println("reset: $source, $description")
             resetEditor(source)
             descriptionPanel.text = description
+            myScriptModel = model
+            repaint()
         }
 
         private fun createEditor(text: String): Editor {
             val editorFactory = EditorFactory.getInstance()
             val doc: Document = EditorFactory.getInstance().createDocument(text)
+            doc.setReadOnly(true)
             val editor = editorFactory.createEditor(doc, myProject)
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
@@ -643,6 +658,12 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
 
         fun component(): JComponent {
             return loadingDecorator.component
+        }
+
+        private fun repaint() {
+            mainPanel.repaint()
+            editorPanel.repaint()
+            descriptionPanel.repaint()
         }
     }
 
