@@ -42,12 +42,20 @@ import java.util.*
 import javax.swing.*
 
 
-const val fixedCellHeight = 30;
+const val fixedCellHeight = 32;
 
+data class SampleScriptModel(val name: String, val language: String, val intro: String, val source: String) {
+    fun invalid(): Boolean {
+        return name == "" || language == "" || source == ""
+    }
+}
 
 class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
     private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
-    private val browserPanel = MKConfigureBrowserComponent(myProject)
+    private val browserPanel = MKConfigureBrowserComponent(myProject) { model, source ->
+        tabbedPane.selectedIndex = 0
+        installedPanel.addScript(model, source)
+    }
     private val installedPanel = MKConfigureInstalledComponent(myProject)
 
     init {
@@ -143,7 +151,8 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
                     )
                 )
 
-                val label = JLabel("This coupon is available within the validity")
+                val sm = checkBox.getClientProperty("model") as ScriptModel
+                val label = JLabel(sm.name)
                 label.isOpaque = true
                 label.preferredSize = Dimension(100, -1)
                 label.background = getBackground(selected)
@@ -273,6 +282,11 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         return true
     }
 
+    fun addScript(model: SampleScriptModel, source: String) {
+        val sm = ScriptModel(language = model.language, raw = source)
+        (scriptListView.model as ScriptListModel).add(sm)
+    }
+
     //    DefaultListCellRenderer
     private class ScriptEditorPanel(val myProject: Project) : JPanel(GridBagLayout()) {
 
@@ -389,33 +403,30 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
     }
 }
 
-class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayoutPanel() {
-
-    data class ScriptModel(val name: String, val language: String, val intro: String, val source: String) {
-        fun invalid(): Boolean {
-            return name == "" || language == "" || source == ""
-        }
-    }
+class MKConfigureBrowserComponent(
+    private val myProject: Project,
+    private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
+) : BorderLayoutPanel() {
 
     private val leftPanel = BorderLayoutPanel()
     private val searchBar = PluginSearchTextField()
-    private val listView = JBList<ScriptModel>()
+    private val listView = JBList<SampleScriptModel>()
     private val splitter = JBSplitter()
-    private var scriptList = listOf<ScriptModel>()
-    private var scriptRepo = listOf<ScriptModel>()
+    private var scriptList = listOf<SampleScriptModel>()
+    private var scriptRepo = listOf<SampleScriptModel>()
     private val luaEnv = JsePlatform.standardGlobals()
     private var scriptLoadingDecorator: LoadingDecorator? = null
     private var isLoad = false
-    private var rightPanel = RightPanel(myProject) {
-        // todo use button on click
+    private var rightPanel = RightPanel(myProject) { model, source ->
+        useButtonOnClick(model, source)
     }
 
-    private val listViewModel = object : AbstractListModel<ScriptModel>() {
+    private val listViewModel = object : AbstractListModel<SampleScriptModel>() {
         override fun getSize(): Int {
             return scriptList.size
         }
 
-        override fun getElementAt(index: Int): ScriptModel {
+        override fun getElementAt(index: Int): SampleScriptModel {
             return scriptList[index]
         }
 
@@ -470,18 +481,18 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         }
     }
 
-    private fun reloadSecondPanel(index: Int, scriptModel: ScriptModel) {
+    private fun reloadSecondPanel(index: Int, sampleScriptModel: SampleScriptModel) {
         rightPanel.startLoading()
         ApplicationManager.getApplication().executeOnPooledThread {
             try {
 
                 var intro = ""
-                if (scriptModel.intro != "") {
-                    val introUrl = MKBundle.message("repositoryBaseUrl") + "/" + scriptModel.intro
+                if (sampleScriptModel.intro != "") {
+                    val introUrl = MKBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.intro
                     intro = URL(introUrl).readText()
                 }
                 println("intro: $intro")
-                val sourceUrl = MKBundle.message("repositoryBaseUrl") + "/" + scriptModel.source
+                val sourceUrl = MKBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.source
                 val source = URL(sourceUrl).readText()
                 println("source: $source")
 
@@ -489,7 +500,7 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
                     assert(SwingUtilities.isEventDispatchThread())
                     println(" ApplicationManager.getApplication, $source, $intro")
                     rightPanel.stopLoading()
-                    rightPanel.reset(source, intro, scriptModel)
+                    rightPanel.reset(source, intro, sampleScriptModel)
                 }, ModalityState.any())
 
             } catch (e: Exception) {
@@ -531,10 +542,10 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         val chuck = luaEnv.load(response)
         val table = chuck.call().checktable()
         table ?: return
-        val list = mutableListOf<ScriptModel>()
+        val list = mutableListOf<SampleScriptModel>()
         for (key in table.keys()) {
             val value = table[key]
-            val sm = ScriptModel(
+            val sm = SampleScriptModel(
                 name = if (value["name"].isnil()) "" else value["name"].toString(),
                 language = if (value["language"].isnil()) "" else value["language"].toString(),
                 intro = if (value["intro"].isnil()) "" else value["intro"].toString(),
@@ -553,7 +564,7 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
 
     inner class RightPanel(
         private val myProject: Project,
-        private val useButtonOnClick: (source: String) -> Unit
+        private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
     ) {
 
         private val mainPanel = BorderLayoutPanel()
@@ -562,7 +573,7 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
         private var editorPanel = BorderLayoutPanel()
         private var descriptionPanel = JEditorPane()
         private var loadingDecorator = LoadingDecorator(mainPanel, {}, 0)
-        private var myScriptModel: ScriptModel? = null;
+        private var mySampleScriptModel: SampleScriptModel? = null;
         private var viewWasLoaded = false;
 
         private fun setupUI() {
@@ -579,8 +590,9 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
             topPanel.add(label, BorderLayout.CENTER)
             val button = JButton("use")
             button.addActionListener {
+                mySampleScriptModel ?: return@addActionListener
                 editor?.let {
-                    useButtonOnClick(editor!!.document.text)
+                    useButtonOnClick(mySampleScriptModel!!, editor!!.document.text)
                 }
             }
             topPanel.add(button, BorderLayout.EAST)
@@ -630,12 +642,12 @@ class MKConfigureBrowserComponent(private val myProject: Project) : BorderLayout
             loadingDecorator.stopLoading()
         }
 
-        fun reset(source: String, description: String, model: ScriptModel) {
+        fun reset(source: String, description: String, modelSample: SampleScriptModel) {
             setupUI()
             println("reset: $source, $description")
             resetEditor(source)
             descriptionPanel.text = description
-            myScriptModel = model
+            mySampleScriptModel = modelSample
             repaint()
         }
 

@@ -11,7 +11,9 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
     }
 
     override fun getElementAt(index: Int): JCheckBox {
-        return JCheckBox()
+        val box = JCheckBox()
+        box.putClientProperty("model", myScriptModels[index])
+        return box
     }
 
     fun add(script: ScriptModel) {
