@@ -31,4 +31,9 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
         fireContentsChanged(this, index, index)
     }
 
+    fun toggleCheckBox(index: Int) {
+        myScriptModels[index].enabled = !myScriptModels[index].enabled
+        fireContentsChanged(this, index, index)
+    }
+
 }

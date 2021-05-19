@@ -178,12 +178,14 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
         scriptListView.setCheckBoxListListener { index, value ->
             println("setCheckBoxListListener, $index, $value")
+            (scriptListView.model as ScriptListModel).toggleCheckBox(scriptListView.selectedIndex)
         }
         scriptListView.addListSelectionListener {
             println("addListSelectionListener $it")
-            if (!it.valueIsAdjusting) {
+            if (it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
+
         }
 
     }
