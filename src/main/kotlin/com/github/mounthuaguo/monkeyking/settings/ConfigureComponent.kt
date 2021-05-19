@@ -1,8 +1,8 @@
 package com.github.mounthuaguo.monkeyking.settings
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
+import com.intellij.application.options.colors.ColorAndFontOptions
 import com.intellij.icons.AllIcons
-import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.plugins.newui.PluginSearchTextField
 import com.intellij.openapi.actionSystem.ActionToolbarPosition
 import com.intellij.openapi.actionSystem.AnAction
@@ -13,18 +13,15 @@ import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.EditorImpl
-import com.intellij.openapi.fileTypes.FileType
-import com.intellij.openapi.fileTypes.FileTypeManager
-import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiFileFactory
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
@@ -34,11 +31,15 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.luaj.vm2.lib.jse.JsePlatform
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
 import java.net.URL
-import java.util.*
 import javax.swing.*
 
 
@@ -56,7 +57,7 @@ class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel()
         tabbedPane.selectedIndex = 0
         installedPanel.addScript(model, source)
     }
-    private val installedPanel = MKConfigureInstalledComponent(myProject)
+    private val installedPanel = ScriptConfigureComponent(myProject)
 
     init {
         tabbedPane.addTab("Installed", installedPanel)
@@ -71,12 +72,14 @@ class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel()
     }
 }
 
-class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayoutPanel() {
+class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
 
-    private var scriptListView: CheckBoxList<ScriptModel> = CheckBoxList()
+    private var scriptListView: CheckBoxList<ScriptModel> = ScriptCheckBoxList()
     private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
-    private val editorPanel = ScriptEditorPanel(myProject)
+    private val editorPanel = ScriptEditorPanel(myProject) {
+        (scriptListView.model as ScriptListModel).update(index = scriptListView.selectedIndex, it)
+    }
     private val mySpliterator = JBSplitter(false, 0.35f, 0.3f, 0.5f)
     private var toolbarDecorator: ToolbarDecorator? = null
 
@@ -118,60 +121,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
 
 
     private fun setupListView() {
-        object : CheckBoxList<ScriptModel>() {
-            override fun adjustRendering(
-                rootComponent: JComponent,
-                checkBox: JCheckBox,
-                index: Int,
-                selected: Boolean,
-                hasFocus: Boolean
-            ): JComponent {
-                val panel = JPanel(GridBagLayout())
-                panel.border = BorderFactory.createEmptyBorder()
-
-                panel.add(
-                    checkBox,
-                    GridBagConstraints(
-                        0, 0, 1, 1, 0.0, 0.0,
-                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
-                    )
-                )
-
-                val icon = JLabel(AllIcons.FileTypes.JavaScript)
-                icon.isOpaque = true
-                icon.preferredSize = Dimension(25, -1)
-                icon.horizontalAlignment = SwingConstants.CENTER
-                icon.background = getBackground(selected)
-
-                panel.add(
-                    icon,
-                    GridBagConstraints(
-                        1, 0, 1, 1, 0.0, 0.0,
-                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
-                    )
-                )
-
-                val sm = checkBox.getClientProperty("model") as ScriptModel
-                val label = JLabel(sm.name)
-                label.isOpaque = true
-                label.preferredSize = Dimension(100, -1)
-                label.background = getBackground(selected)
-                panel.add(
-                    label,
-                    GridBagConstraints(
-                        2, 0, 1, 1, 1.0, 1.0,
-                        GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
-                    )
-                )
-
-                panel.background = getBackground(false)
-                if (!checkBox.isOpaque) {
-                    checkBox.isOpaque = true
-                }
-                checkBox.border = null
-                return panel
-            }
-        }.also { scriptListView = it }
         val scriptListModel = ScriptListModel(scripts)
         scriptListView.model = scriptListModel
         scriptListView.fixedCellHeight = fixedCellHeight
@@ -185,7 +134,9 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             if (it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
-
+            editorPanel.setScriptModel(
+                scriptListModel.getModel(scriptListView.selectedIndex)
+            )
         }
 
     }
@@ -289,16 +240,17 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         (scriptListView.model as ScriptListModel).add(sm)
     }
 
-    //    DefaultListCellRenderer
-    private class ScriptEditorPanel(val myProject: Project) : JPanel(GridBagLayout()) {
+    private class ScriptEditorPanel(
+        val myProject: Project,
+        val scriptHasChanged: (ScriptModel) -> Unit
+    ) : JPanel(GridBagLayout()) {
 
         private var myScriptEditorPanel = BorderLayoutPanel()
         private var myScriptEditor: Editor? = null;
         private var myErrorPanel: JEditorPane? = null;
         private var myScriptModel: ScriptModel? = null;
-        private val mySpliterator = JBSplitter(true, 0.9f, 0.5f, 0.9f)
-        private var luaFieType = FileTypeManager.getInstance().getFileTypeByExtension("lua")
-        private var jsFileType = FileTypeManager.getInstance().getFileTypeByExtension("js")
+        private val mySpliterator = JBSplitter(true, 1.0f, 0.5f, 1.0f)
+        private var job: Job? = null;
 
         init {
             setupUI()
@@ -309,9 +261,12 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
             panel.editorKit = UIUtil.getHTMLEditorKit()
             panel.isEditable = false
             panel.addHyperlinkListener(BrowserHyperlinkListener())
+            panel.background = Color(0, 0, 0, 0)
+            panel.isOpaque = false
             myErrorPanel = panel
 
             val errorComponent = ScrollPaneFactory.createScrollPane(panel)
+            errorComponent.border = BorderFactory.createEmptyBorder()
             mySpliterator.secondComponent = errorComponent
 
             this.add(
@@ -326,6 +281,7 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         fun setScriptModel(script: ScriptModel) {
             myScriptModel = script
             reset()
+            this.resetErrorMessage(scriptModel = script)
         }
 
         private fun reset() {
@@ -339,10 +295,15 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         }
 
         private fun createEditor(): Editor {
+            val scheme = EditorColorsManager.getInstance().globalScheme
+            val options = ColorAndFontOptions()
+            options.reset()
+            options.selectScheme(scheme.name)
+
             val editorFactory = EditorFactory.getInstance()
             val doc: Document = createDocument()
-            val editor = editorFactory.createEditor(doc, myProject)
-
+            val editor = editorFactory.createEditor(doc, myProject) as EditorEx
+            editor.colorsScheme = scheme;
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
             editorSettings.isLineMarkerAreaShown = false
@@ -365,10 +326,19 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         }
 
         private fun scriptHasChanged() {
-            val text = myScriptEditor?.document?.text
-            val scriptModel = text?.let { ScriptModel(myScriptModel?.language ?: "lua", it) }
-            val errorMessage = scriptModel?.validate()
-            errorMessage?.let {
+            job?.cancel()
+            job = GlobalScope.launch {
+                delay(1000L)
+                val text = myScriptEditor?.document?.text
+                val scriptModel = text?.let { ScriptModel(myScriptModel?.language ?: "lua", it) }
+                resetErrorMessage(scriptModel!!)
+                scriptHasChanged(scriptModel)
+            }
+        }
+
+        private fun resetErrorMessage(scriptModel: ScriptModel) {
+            val errorMessage = scriptModel.validate()
+            errorMessage.let {
                 myErrorPanel?.text = """
                    $errorMessage 
                 """.trimIndent()
@@ -378,22 +348,6 @@ class MKConfigureInstalledComponent(private val myProject: Project) : BorderLayo
         private fun createDocument(): Document {
             println("createDocument myScriptModel?.raw $myScriptModel ")
             return EditorFactory.getInstance().createDocument(myScriptModel?.raw ?: "")
-        }
-
-
-        private fun createFile(text: String): PsiFile? {
-            val fileType: FileType = if (myScriptModel?.language == "lua") {
-                luaFieType
-            } else {
-                jsFileType
-            }
-            if (fileType === FileTypes.UNKNOWN) return null
-
-            val file = PsiFileFactory.getInstance(myProject).createFileFromText("$name.txt.ft", fileType, text, 0, true)
-            val properties = Properties()
-            properties.putAll(FileTemplateManager.getInstance(myProject).defaultProperties)
-            file.viewProvider.putUserData(FileTemplateManager.DEFAULT_TEMPLATE_PROPERTIES, properties)
-            return file
         }
 
         fun disposeUIResources() {
@@ -490,11 +444,11 @@ class MKConfigureBrowserComponent(
 
                 var intro = ""
                 if (sampleScriptModel.intro != "") {
-                    val introUrl = MKBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.intro
+                    val introUrl = MonkeyBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.intro
                     intro = URL(introUrl).readText()
                 }
                 println("intro: $intro")
-                val sourceUrl = MKBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.source
+                val sourceUrl = MonkeyBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.source
                 val source = URL(sourceUrl).readText()
                 println("source: $source")
 
@@ -528,7 +482,7 @@ class MKConfigureBrowserComponent(
         scriptLoadingDecorator!!.startLoading(false)
         GlobalScope.launch {
             val result = runCatching {
-                val url = MKBundle.message("repositoryBaseUrl") + MKBundle.message("repositoryPath")
+                val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
                 val response = URL(url).readText()
                 println("response: $response")
                 handleScriptsResponse(response)

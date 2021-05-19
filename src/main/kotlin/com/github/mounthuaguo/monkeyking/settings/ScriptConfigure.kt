@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.settings
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.services.ApplicationService
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.project.Project
@@ -26,7 +26,7 @@ class ScriptConfigure(val project: Project) : Configurable, Configurable.NoScrol
     }
 
     override fun getDisplayName(): String {
-        return MKBundle.message("configureName")
+        return MonkeyBundle.message("configureName")
     }
 
 }

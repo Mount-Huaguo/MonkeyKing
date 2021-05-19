@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.ui
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -9,7 +9,6 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBLabel
 import org.jetbrains.annotations.Nullable
 import java.awt.BorderLayout
@@ -40,7 +39,7 @@ class ScriptDialogWrapper(
 
         println("init ScriptDialog")
 
-        title = MKBundle.getMessage("scriptDialogTitle")
+        title = MonkeyBundle.getMessage("scriptDialogTitle")
     }
 
     private fun sourceTextHasChanged(txt: String) {
@@ -87,9 +86,9 @@ class ScriptDialogWrapper(
 
 
         if (template == null) {
-            template = MKBundle.getMessage("luaTemplate")
+            template = MonkeyBundle.getMessage("luaTemplate")
             if (language == "js") {
-                template = MKBundle.getMessage("jsTemplate")
+                template = MonkeyBundle.getMessage("jsTemplate")
             }
         }
 

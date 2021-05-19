@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.services
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.lualib.IDEA
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
 import com.intellij.openapi.Disposable
@@ -24,12 +24,12 @@ import java.awt.Window
 
 class ApplicationService : Disposable {
 
-    private val actionGroupId = MKBundle.message("actionGroupId")
+    private val actionGroupId = MonkeyBundle.message("actionGroupId")
     private val defaultActions = mutableListOf<String>()
     private var conn: MessageBusConnection? = null
 
     init {
-        println(MKBundle.message("applicationService"))
+        println(MonkeyBundle.message("applicationService"))
     }
 
     companion object {
@@ -146,7 +146,7 @@ class ApplicationService : Disposable {
 
     private fun registerAllActions(scripts: List<ScriptModel>) {
         val actionManager = ActionManager.getInstance()
-        val group = actionManager.getAction(MKBundle.message("actionGroupId")) as DefaultActionGroup
+        val group = actionManager.getAction(MonkeyBundle.message("actionGroupId")) as DefaultActionGroup
 
         for (script in scripts) {
             if (script.action != "menu") {
@@ -160,7 +160,7 @@ class ApplicationService : Disposable {
                 actionManager.registerAction(
                     id,
                     action,
-                    PluginId.getId(MKBundle.getMessage("pluginId"))
+                    PluginId.getId(MonkeyBundle.getMessage("pluginId"))
                 )
                 group.add(action, Constraints.FIRST)
             }

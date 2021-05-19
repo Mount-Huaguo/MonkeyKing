@@ -1,13 +1,14 @@
 package com.github.mounthuaguo.monkeyking
 
 import com.intellij.AbstractBundle
+import com.intellij.openapi.util.IconLoader
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
 
 @NonNls
 private const val BUNDLE = "messages.MKBundle"
 
-object MKBundle : AbstractBundle(BUNDLE) {
+object MonkeyBundle : AbstractBundle(BUNDLE) {
 
     @Suppress("SpreadOperator")
     @JvmStatic
@@ -18,4 +19,10 @@ object MKBundle : AbstractBundle(BUNDLE) {
     @JvmStatic
     fun messagePointer(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any) =
         getLazyMessage(key, *params)
+}
+
+
+object MonkeyIcons {
+    val LUA = IconLoader.getIcon("/asserts/lua.svg")
+    val JS = IconLoader.getIcon("/asserts/js.svg")
 }

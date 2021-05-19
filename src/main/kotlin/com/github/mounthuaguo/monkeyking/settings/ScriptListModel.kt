@@ -16,6 +16,10 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
         return box
     }
 
+    fun getModel(index: Int): ScriptModel {
+        return myScriptModels[index]
+    }
+
     fun add(script: ScriptModel) {
         myScriptModels.add(script)
         fireContentsChanged(this, 0, myScriptModels.size - 1)

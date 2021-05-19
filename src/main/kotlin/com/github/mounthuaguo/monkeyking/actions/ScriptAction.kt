@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.actions
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.ui.ScriptDialogWrapper
 import com.intellij.codeInspection.ex.GlobalInspectionContextImpl.NOTIFICATION_GROUP
 import com.intellij.notification.Notification
@@ -35,9 +35,9 @@ class ScriptActionWrap(
 
     init {
         scriptText = if (language == "lua") {
-            MKBundle.message("luaTemplate")
+            MonkeyBundle.message("luaTemplate")
         } else {
-            MKBundle.message("jsTemplate")
+            MonkeyBundle.message("jsTemplate")
         }
 
         sourceText = if (editor.selectionModel.hasSelection()) {

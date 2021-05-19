@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.ui
 
-import com.github.mounthuaguo.monkeyking.MKBundle
+import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.EditorTextField
 import com.intellij.ui.components.JBLabel
@@ -198,7 +198,7 @@ class BrowserDialogJComponent() {
         }
 
         fun querySource() {
-            val txt = URL(MKBundle.message("scriptsRepository") + d.path).readText()
+            val txt = URL(MonkeyBundle.message("scriptsRepository") + d.path).readText()
             editor.document.setReadOnly(false)
             editor.document.setText(txt)
             editor.document.setReadOnly(true)

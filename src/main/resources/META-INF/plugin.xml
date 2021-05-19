@@ -15,7 +15,7 @@
         <postStartupActivity implementation="com.github.mounthuaguo.monkeyking.ShortcutStartupActivity"/>
 
         <customizableActionGroupProvider
-                implementation="com.github.mounthuaguo.monkeyking.MKCustomizableActionGroupProvider"
+                implementation="com.github.mounthuaguo.monkeyking.MonkeyActionGroupProvider"
                 order="first"/>
     </extensions>
 
