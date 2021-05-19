@@ -9,6 +9,9 @@ import org.luaj.vm2.Globals
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.net.URL
 import java.util.*
+import javax.script.Compilable
+import javax.script.ScriptEngineManager
+
 
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
@@ -76,11 +79,11 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
                 support alpha,digit,dash,whitespace,underscore.<br/>
             """.trimIndent()
         }
-        val valid = LuaValidator(raw).validate()
-        if (valid != "") {
-            return valid
+        return if (language == "lua") {
+            LuaValidator(raw).validate()
+        } else {
+            JavascriptValidator(raw).validate()
         }
-        return ""
     }
 
     fun genMenuId(menu: String): String {
@@ -226,16 +229,37 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
 
 }
 
+interface ScriptValidator {
+    fun validate(): String
+}
 
-data class LuaValidator(private val raw: String) {
+
+class LuaValidator(private val raw: String) : ScriptValidator {
     companion object {
         @JvmStatic
         val env: Globals = JsePlatform.standardGlobals()
     }
 
-    fun validate(): String {
+    override fun validate(): String {
         return try {
             env.load(raw)
+            ""
+        } catch (e: Exception) {
+            e.toString()
+        }
+    }
+}
+
+
+class JavascriptValidator(private val raw: String) : ScriptValidator {
+    companion object {
+        @JvmStatic
+        val compiler: Compilable = ScriptEngineManager().getEngineByName("nashorn") as Compilable
+    }
+
+    override fun validate(): String {
+        return try {
+            compiler.compile(raw)
             ""
         } catch (e: Exception) {
             e.toString()
