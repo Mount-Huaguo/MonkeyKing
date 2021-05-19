@@ -13,8 +13,7 @@ import java.util.*
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
-const val luaScriptModelTemplate = """
--- @start
+const val luaScriptModelTemplate = """-- @start
 -- @namespace       namespace.unspecified
 -- @version         0.1
 -- @name            Name is not specified
@@ -27,8 +26,7 @@ const val luaScriptModelTemplate = """
 
 """
 
-const val jsScriptModelTemplate = """
-// @start
+const val jsScriptModelTemplate = """// @start
 // @namespace   namespace.unspecified
 // @version     0.1
 // @name        Name is not specified
@@ -178,6 +176,20 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
 class ConfigureState {
     var scripts: List<ScriptModel> = listOf()
     var timestamp: Long = 0
+
+    fun trimInvalidScripts() {
+        val list = mutableListOf<ScriptModel>()
+        for (s in scripts) {
+            if (s == null) {
+                continue
+            }
+            if (s.validate() != "") {
+                continue
+            }
+            list.add(s)
+        }
+        scripts = list.toList()
+    }
 }
 
 @State(name = "com.github.mounthuaguo.monkeyking", storages = [Storage("monkeyking.xml")])
@@ -193,6 +205,7 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
 
     override fun loadState(state: ConfigureState) {
         XmlSerializerUtil.copyBean(state, mkState)
+        mkState.trimInvalidScripts()
     }
 
     override fun getState(): ConfigureState {
