@@ -40,4 +40,7 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
         fireContentsChanged(this, index, index)
     }
 
+    fun scripts(): List<ScriptModel> {
+        return myScriptModels.toList()
+    }
 }

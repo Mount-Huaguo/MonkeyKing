@@ -31,14 +31,20 @@ class IDEA(
 
     override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
         val idea = LuaTable(0, 10)
+
+        // idea.copy('text')
         idea["copy"] = Copy()
 
         // log
+        // idea.log.info('the info message')
         val log = LuaTable(0, 1)
         log["info"] = LogInfo()
         idea["log"] = log
 
         // notice
+        // idea.notice.info('notice info')
+        // idea.notice.error('notice error')
+        // idea.notice.warn('notice warn')
         val notice = LuaTable(0, 3)
         notice["info"] = createNotify(NotificationType.INFORMATION)
         notice["error"] = createNotify(NotificationType.ERROR)
@@ -61,7 +67,7 @@ class IDEA(
             arg2["event"] = CoerceJavaToLua.coerce(actionEvent)
         }
 
-        arg2["util"]["loaded"]["idea"] = idea
+        arg2["package"]["loaded"]["idea"] = idea
         return idea
     }
 

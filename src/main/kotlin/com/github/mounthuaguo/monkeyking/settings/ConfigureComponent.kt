@@ -26,7 +26,6 @@ import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBTabbedPane
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
@@ -51,31 +50,9 @@ data class SampleScriptModel(val name: String, val language: String, val intro: 
     }
 }
 
-class MKConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
-    private val tabbedPane = JBTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
-    private val browserPanel = MKConfigureBrowserComponent(myProject) { model, source ->
-        tabbedPane.selectedIndex = 0
-        installedPanel.addScript(model, source)
-    }
-    private val installedPanel = ScriptConfigureComponent(myProject)
-
-    init {
-        tabbedPane.addTab("Installed", installedPanel)
-        tabbedPane.addTab("Browser", browserPanel)
-        tabbedPane.addChangeListener {
-            println("tabbedPane.addChangeListener: $it, ${tabbedPane.selectedIndex}, ${tabbedPane.selectedComponent}")
-            if (tabbedPane.selectedIndex == 1) {
-                browserPanel.setupUI()
-            }
-        }
-        add(tabbedPane, BorderLayout.CENTER)
-    }
-}
-
 class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
 
     private var scriptListView: CheckBoxList<ScriptModel> = ScriptCheckBoxList()
-    private val scripts = mutableListOf<ScriptModel>()
     private val state = ConfigureStateService.getInstance()
     private val editorPanel = ScriptEditorPanel(myProject) {
         (scriptListView.model as ScriptListModel).update(index = scriptListView.selectedIndex, it)
@@ -85,14 +62,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
     init {
         // table
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
-        scripts.addAll(state.getScripts())
         setupUI()
-
     }
 
     private fun setupUI() {
@@ -121,7 +91,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
 
     private fun setupListView() {
-        val scriptListModel = ScriptListModel(scripts)
+        val scriptListModel = ScriptListModel(state.getScripts().toMutableList())
         scriptListView.model = scriptListModel
         scriptListView.fixedCellHeight = fixedCellHeight
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
@@ -201,6 +171,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
     }
 
     fun saveScripts() {
+        val scripts = (scriptListView.model as ScriptListModel).scripts()
         val m = mutableMapOf<String, Unit>()
         for (s in scripts) {
             if (s.validate() != "") {
@@ -216,9 +187,16 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         state.state
     }
 
-    fun isEqual(): Boolean {
+    fun addScript(model: SampleScriptModel, source: String) {
+        val sm = ScriptModel(language = model.language, raw = source)
+        (scriptListView.model as ScriptListModel).add(sm)
+    }
+
+    fun isModified(): Boolean {
+        val scripts = (scriptListView.model as ScriptListModel).scripts()
+        println("$scripts, ${state.getScripts()}")
         if (state.getScripts().size != scripts.size) {
-            return false
+            return true
         }
         val m = mutableMapOf<String, Unit>()
         val ss = state.getScripts()
@@ -227,15 +205,11 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         }
         for (s in scripts) {
             if (!m.containsKey(s.raw)) {
-                return false
+                return true
             }
         }
-        return true
-    }
 
-    fun addScript(model: SampleScriptModel, source: String) {
-        val sm = ScriptModel(language = model.language, raw = source)
-        (scriptListView.model as ScriptListModel).add(sm)
+        return false
     }
 
     private class ScriptEditorPanel(

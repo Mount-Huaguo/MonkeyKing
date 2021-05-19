@@ -13,6 +13,11 @@ import javax.script.Compilable
 import javax.script.ScriptEngineManager
 
 
+enum class ScriptLanguage(val value: String) {
+    Lua("lua"), Js("js")
+
+}
+
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
@@ -60,14 +65,14 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     }
 
     fun validate(): String {
-        if (language != "lua" && language != "js") {
-            return "Language only support lua and js."
+        if (language != ScriptLanguage.Lua.value && language != ScriptLanguage.Js.value) {
+            return "Language only support ${ScriptLanguage.Lua.value} and ${ScriptLanguage.Js.value}."
         }
-        if (version == "") {
-            return "Version can not be empty"
+        if (!Regex("^[vV0-9.]{1,64}$").matches(version)) {
+            return "Version format error"
         }
-        if (namespace == "") {
-            return "Namespace can not be empty"
+        if (!Regex("^[a-zA-z0-9_.]{1,256}$").matches(namespace)) {
+            return "Namespace format error"
         }
         if (type != "action" && type != "template") { // todo support listener
             return "Action can be action or template"

@@ -2,6 +2,7 @@ package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.lualib.IDEA
+import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
@@ -138,7 +139,7 @@ class ApplicationService : Disposable {
         val group = actionManager.getAction(MonkeyBundle.message("actionGroupId")) as DefaultActionGroup
 
         for (script in scripts) {
-            if (script.type != "menu") {
+            if (script.type != "action") {
                 continue
             }
             for (menu in script.actions) {
@@ -168,12 +169,16 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
 
     override fun actionPerformed(e: AnActionEvent) {
         try {
-            if (script.language == "lua") {
-                LuaScriptAction(script, menu, e).run()
-            } else if (script.language == "js") {
-                JsScriptAction(script, menu, e).run()
-            } else {
-                throw Exception("Invalid script language ${script.language}")
+            when (script.language) {
+                ScriptLanguage.Lua.value -> {
+                    LuaScriptAction(script, menu, e).run()
+                }
+                ScriptLanguage.Js.value -> {
+                    JsScriptAction(script, menu, e).run()
+                }
+                else -> {
+                    throw Exception("Invalid script language ${script.language}")
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -183,20 +188,24 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
 }
 
 
-class LuaScriptAction(val script: ScriptModel, val menu: String, val e: AnActionEvent) {
-
+class LuaScriptAction(private val script: ScriptModel, private val menu: String, private val e: AnActionEvent) {
     fun run() {
-        val env = JsePlatform.standardGlobals()
-        env.load(IDEA(scriptName = script.name, project = e.project, actionEvent = e))
-        env["menu"] = menu
-        val requireTable = LuaTable()
-        for (require in script.requires) {
-            val chuck = env.load(require.data)
-            requireTable[1] = chuck.call()
+        try {
+            val env = JsePlatform.standardGlobals()
+            env.load(IDEA(scriptName = script.name, project = e.project, actionEvent = e))
+            env["menu"] = menu
+            val requireTable = LuaTable()
+            for (require in script.requires) {
+                val chuck = env.load(require.data)
+                requireTable[1] = chuck.call()
+            }
+            env["require"] = requireTable
+            val chuck = env.load(script.raw)
+            chuck.call()
+        } catch (e: Exception) {
+            e.printStackTrace()
+
         }
-        env["require"] = requireTable
-        val chuck = env.load(script.raw)
-        chuck.call()
     }
 }
 
