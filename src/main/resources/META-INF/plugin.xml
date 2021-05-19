@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.github.mounthuaguo.monkeyking</id>
     <name>MonkeyKing</name>
-    <vendor>heramerom</vendor>
+    <vendor>Heramerom</vendor>
 
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -57,8 +57,6 @@
                              instance="com.github.mounthuaguo.monkeyking.settings.ScriptConfigure"
                              id="com.github.mounthuaguo.monkeyking.settings.ScriptConfigure"
                              displayName="Monkey King"/>
-        <search.topHitProvider
-                implementation="com.github.mounthuaguo.monkeyking.settings.ScriptTopHitProvider"/>
     </extensions>
 
     <!-- tool window -->

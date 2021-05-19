@@ -150,16 +150,14 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
         val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
             override fun actionPerformed(e: AnActionEvent) {
-                println("action1 actionPerformed ${e}")
-                val script = ScriptModel("lua")
+                val script = ScriptModel("lua", luaScriptModelTemplate)
                 (scriptListView.model as ScriptListModel).add(script)
             }
         }
 
         val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
             override fun actionPerformed(e: AnActionEvent) {
-                println("action1 actionPerformed ${e}")
-                val script = ScriptModel("js")
+                val script = ScriptModel("js", jsScriptModelTemplate)
                 (scriptListView.model as ScriptListModel).add(script)
             }
         }

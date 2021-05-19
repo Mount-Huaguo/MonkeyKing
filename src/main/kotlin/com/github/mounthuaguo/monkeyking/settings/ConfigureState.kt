@@ -4,6 +4,7 @@ import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.util.xmlb.XmlSerializerUtil
 import org.luaj.vm2.Globals
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.net.URL
@@ -12,30 +13,49 @@ import java.util.*
 data class ScriptMenu(val id: String, val name: String)
 data class ScriptRequire(val uri: String, val data: String)
 
+const val luaScriptModelTemplate = """
+-- @start
+-- @namespace       namespace.unspecified
+-- @version         0.1
+-- @name            Name is not specified
+-- @type            action or template
+-- @action          TODO
+-- @end
+
+-- insert code here
+
+
+"""
+
+const val jsScriptModelTemplate = """
+// @start
+// @namespace   namespace.unspecified
+// @version     0.1
+// @name        Name is not specified
+// @type        action or template
+// @action      TODO 
+// @end
+    
+    
+(function(){
+    // insert code here
+})()
+
+"""
+
 data class ScriptModel(val language: String = "lua", var raw: String = "") {
 
-    var version: String = ""
     var namespace: String = ""
+    var version: String = ""
     var name: String = ""
-    var description: String = ""
-    var action: String = ""
-    var topic: String = ""
+    var description: String? = ""
+    var type: String = ""
     var requires: List<ScriptRequire> = listOf()
-    var menus: List<String> = listOf()
+    var actions: List<String> = listOf()
     var enabled: Boolean = true
-
-    companion object {
-        @JvmStatic
-        private val luaEnv = JsePlatform.standardGlobals()
-    }
 
     init {
         parse()
-    }
-
-    // unnamed
-    constructor(language: String = "lua") : this(language, "") {
-        name = "unnamed"
     }
 
     fun validate(): String {
@@ -48,17 +68,19 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
         if (namespace == "") {
             return "Namespace can not be empty"
         }
-        if (action != "menu" && action != "template" && action != "listener") {
-            return "Action can be menu,template and listener"
+        if (type != "action" && type != "template") { // todo support listener
+            return "Action can be action or template"
         }
         if (!Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
-//            return "Name can't be empty,\nless than 256 characters,\nsupport alpha,digit,dash,whitespace,underscore."
-            println("script name: $name")
-            return "Name format error"
+            return """
+                Name can't be empty,<br/>
+                less than 256 characters,<br/>
+                support alpha,digit,dash,whitespace,underscore.<br/>
+            """.trimIndent()
         }
         val valid = LuaValidator(raw).validate()
         if (valid != "") {
-            return "Syntax error"
+            return valid
         }
         return ""
     }
@@ -92,11 +114,9 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
         namespace = parseField(headers, "namespace")
         name = parseField(headers, "name")
         description = parseField(headers, "description")
-        action = parseField(headers, "action")
-        topic = parseField(headers, "topic")
-        menus = parseFields(headers, "menu")
+        type = parseField(headers, "type")
+        actions = parseFields(headers, "action")
         val requireRaw = parseFields(headers, "require")
-        println("parse $name, $description, $action, $version, $topic, $menus, $requireRaw")
         val rs = mutableListOf<ScriptRequire>()
         for (uri in requireRaw) {
             // TODO use async request
@@ -109,7 +129,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
 
     fun allMenus(): List<ScriptMenu> {
         val r = mutableListOf<ScriptMenu>()
-        for (menu in menus) {
+        for (menu in actions) {
             r.add(ScriptMenu(genMenuId(menu), menu))
         }
         return r
@@ -149,6 +169,10 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
         return fieldValue
     }
 
+    override fun toString(): String {
+        return "ScriptModel[$namespace, $version, $name, $type, $actions]"
+    }
+
 }
 
 class ConfigureState {
@@ -168,65 +192,17 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
     }
 
     override fun loadState(state: ConfigureState) {
-        //        XmlSerializerUtil.copyBean(state, mkState)
-
-        // for tests
-        mkState.scripts = listOf(
-            ScriptModel(
-                "lua", """      
--- @start 
--- @name Bson Object ID
--- @description Bson object id method suit
--- @action menu
--- @menu Insert Object ID
--- @menu Copy Timestap From Object ID
--- @end 
-
-if menu == 'Insert Object ID'
-    return 'xxxx'
-end 
-
-
-if menu == 'Copy Timestap From Object ID'
-    return '102837464'
-end
-
-        """.trimIndent()
-            )
-        )
+        XmlSerializerUtil.copyBean(state, mkState)
     }
 
     override fun getState(): ConfigureState {
-//        println("PersistentStateComponent getState $mkState")
+        println("PersistentStateComponent getState $mkState")
         return mkState
     }
 
     fun getScripts(): List<ScriptModel> {
-//        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
-//        return mkState.scripts
-        return listOf(
-            ScriptModel(
-                "lua", """      
--- @start 
--- @name Bson Object ID
--- @description Bson object id method suit
--- @action menu
--- @menu Insert Object ID
--- @menu Copy Timestap From Object ID
--- @end 
-
-if menu == 'Insert Object ID'
-    return 'xxxx'
-end 
-
-
-if menu == 'Copy Timestap From Object ID'
-    return '102837464'
-end
-
-        """.trimIndent()
-            )
-        )
+        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
+        return mkState.scripts
     }
 
     fun setScripts(scripts: List<ScriptModel>) {

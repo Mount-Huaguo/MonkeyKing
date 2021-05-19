@@ -70,21 +70,10 @@ class ApplicationService : Disposable {
         val updateListeners = mutableListOf<ScriptModel>()
         val removeListeners = mutableListOf<ScriptModel>()
         for (script in scripts) {
-            if (script.action != "listener") {
+            if (script.type != "listener") {
                 continue
             }
-            if (script.topic == "create") {
-                createListeners.add(script)
-                continue
-            }
-            if (script.topic == "update") {
-                updateListeners.add(script)
-                continue
-            }
-            if (script.topic == "remove") {
-                removeListeners.add(script)
-                continue
-            }
+            // todo
         }
         if (createListeners.size == 0 && updateListeners.size == 0 && removeListeners.size == 0) {
             return
@@ -149,10 +138,10 @@ class ApplicationService : Disposable {
         val group = actionManager.getAction(MonkeyBundle.message("actionGroupId")) as DefaultActionGroup
 
         for (script in scripts) {
-            if (script.action != "menu") {
+            if (script.type != "menu") {
                 continue
             }
-            for (menu in script.menus) {
+            for (menu in script.actions) {
                 val id = script.genMenuId(menu)
                 val action = ScriptAction(script, menu)
                 action.templatePresentation.text = menu
