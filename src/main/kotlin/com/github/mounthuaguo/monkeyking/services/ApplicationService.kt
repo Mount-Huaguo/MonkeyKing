@@ -4,6 +4,7 @@ import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.lualib.IDEA
 import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
+import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
@@ -171,7 +172,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
         try {
             when (script.language) {
                 ScriptLanguage.Lua.value -> {
-                    LuaScriptAction(script, menu, e).run()
+                    LuaScriptAction(e.project, script, menu, e).run()
                 }
                 ScriptLanguage.Js.value -> {
                     JsScriptAction(script, menu, e).run()
@@ -180,15 +181,22 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
                     throw Exception("Invalid script language ${script.language}")
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (exception: Exception) {
+            exception.printStackTrace()
             // todo notice
+            e.project ?: return
+            ToolWindowUtil(e.project!!, script.name).log(e.toString())
         }
     }
 }
 
 
-class LuaScriptAction(private val script: ScriptModel, private val menu: String, private val e: AnActionEvent) {
+class LuaScriptAction(
+    private val project: Project?,
+    private val script: ScriptModel,
+    private val menu: String,
+    private val e: AnActionEvent
+) {
     fun run() {
         try {
             val env = JsePlatform.standardGlobals()
@@ -204,7 +212,8 @@ class LuaScriptAction(private val script: ScriptModel, private val menu: String,
             chuck.call()
         } catch (e: Exception) {
             e.printStackTrace()
-
+            project ?: return
+            ToolWindowUtil(project, script.name).log(e.toString())
         }
     }
 }
