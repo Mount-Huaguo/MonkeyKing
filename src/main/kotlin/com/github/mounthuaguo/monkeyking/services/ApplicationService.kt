@@ -56,6 +56,7 @@ class ApplicationService : Disposable {
                 defaultActions.add(action.templatePresentation.text)
             }
         }
+        println("defaultActions $defaultActions")
     }
 
     fun reload(scripts: List<ScriptModel>) {
@@ -64,6 +65,7 @@ class ApplicationService : Disposable {
     }
 
     // reload listener
+    // todo not implement
     private fun reloadListener(scripts: List<ScriptModel>) {
         conn?.let {
             conn!!.disconnect()
@@ -75,7 +77,6 @@ class ApplicationService : Disposable {
             if (script.type != "listener") {
                 continue
             }
-            // todo
         }
         if (createListeners.size == 0 && updateListeners.size == 0 && removeListeners.size == 0) {
             return
@@ -116,13 +117,14 @@ class ApplicationService : Disposable {
 
     // reload actions
     private fun reloadActions(scripts: List<ScriptModel>) {
-        removeAllScriptActions()
-        registerAllActions(scripts)
-    }
-
-    private fun removeAllScriptActions() {
         val actionManager = ActionManager.getInstance()
         val group = actionManager.getAction(actionGroupId) as DefaultActionGroup
+
+        removeAllScriptActions(actionManager, group)
+        registerAllActions(actionManager, group, scripts)
+    }
+
+    private fun removeAllScriptActions(actionManager: ActionManager, group: DefaultActionGroup) {
         val actions = group.childActionsOrStubs
         for (action in actions) {
             if (action is Separator) {
@@ -131,14 +133,18 @@ class ApplicationService : Disposable {
             if (defaultActions.contains(action.templatePresentation.text)) {
                 continue
             }
-            group.remove(action)
+            val id = actionManager.getId(action)
+            println("unregister action: $id, ${action.templatePresentation.text}")
+            group.remove(action, actionManager)
+            actionManager.unregisterAction(id)
         }
     }
 
-    private fun registerAllActions(scripts: List<ScriptModel>) {
-        val actionManager = ActionManager.getInstance()
-        val group = actionManager.getAction(MonkeyBundle.message("actionGroupId")) as DefaultActionGroup
-
+    private fun registerAllActions(
+        actionManager: ActionManager,
+        group: DefaultActionGroup,
+        scripts: List<ScriptModel>
+    ) {
         for (script in scripts) {
             if (script.type != "action") {
                 continue
@@ -153,6 +159,7 @@ class ApplicationService : Disposable {
                     action,
                     PluginId.getId(MonkeyBundle.getMessage("pluginId"))
                 )
+                println("register action: $id, $menu")
                 group.add(action, Constraints.FIRST)
             }
         }

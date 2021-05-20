@@ -92,7 +92,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     }
 
     fun genMenuId(menu: String): String {
-        return (name + "_" + menu).replace(" ", "_")
+        return "${namespace}.${name}.${menu}".replace(" ", "_")
     }
 
     private fun parse() {

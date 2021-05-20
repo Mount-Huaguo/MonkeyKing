@@ -1,8 +1,7 @@
 package com.github.mounthuaguo.monkeyking.lualib
 
+import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
 import com.intellij.codeInspection.ex.GlobalInspectionContextImpl
-import com.intellij.execution.filters.TextConsoleBuilderFactory
-import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -12,8 +11,6 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.SelectionModel
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.wm.ToolWindow
-import com.intellij.openapi.wm.ToolWindowManager
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.OneArgFunction
@@ -37,9 +34,7 @@ class IDEA(
 
         // log
         // idea.log.info('the info message')
-        val log = LuaTable(0, 1)
-        log["info"] = LogInfo()
-        idea["log"] = log
+        idea["log"] = LogInfo()
 
         // notice
         // idea.notice.info('notice info')
@@ -81,24 +76,12 @@ class IDEA(
 
     inner class LogInfo : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
-
-            project ?: return valueOf(false)
-
-            val toolWindow: ToolWindow =
-                ToolWindowManager.getInstance(project).getToolWindow("Monkey King") ?: return valueOf(false)
-
-            val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
-
-            var content = toolWindow.contentManager.findContent(scriptName)
-            if (content == null) {
-                content = toolWindow.contentManager.factory
-                    .createContent(consoleView.component, scriptName, false)
-                toolWindow.contentManager.addContent(content)
+            return try {
+                ToolWindowUtil(project!!, scriptName).log(arg.checkstring().toString())
+                valueOf(true)
+            } catch (e: Exception) {
+                valueOf(false)
             }
-            toolWindow.contentManager.setSelectedContent(content)
-            val str = arg.checkstring().toString()
-            consoleView.print(str, ConsoleViewContentType.NORMAL_OUTPUT)
-            return valueOf(true)
         }
     }
 
@@ -163,10 +146,7 @@ class IDEA(
                     valueOf(false)
                 }
             }
-
         }
-
     }
-
 
 }
