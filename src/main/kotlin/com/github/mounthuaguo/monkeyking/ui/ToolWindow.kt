@@ -12,15 +12,18 @@ class ToolWindowUtil(private val project: Project, private val tab: String) {
     fun log(str: String) {
         val toolWindow: ToolWindow =
             ToolWindowManager.getInstance(project).getToolWindow("Monkey King") ?: return
-        val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
         var content = toolWindow.contentManager.findContent(tab)
-        if (content == null) {
-            content = toolWindow.contentManager.factory
-                .createContent(consoleView.component, tab, false)
-            toolWindow.contentManager.addContent(content)
+        if (content != null) {
+            println("content: $content")
+            toolWindow.contentManager.removeContent(content, true)
         }
+        val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+        content = toolWindow.contentManager.factory.createContent(consoleView.component, tab, false)
+        content.isCloseable = true
+        toolWindow.contentManager.addContent(content)
         toolWindow.contentManager.setSelectedContent(content)
         consoleView.print(str, ConsoleViewContentType.NORMAL_OUTPUT)
+        toolWindow.show()
     }
 }
 
