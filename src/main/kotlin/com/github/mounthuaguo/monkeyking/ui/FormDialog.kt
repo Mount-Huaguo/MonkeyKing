@@ -43,6 +43,11 @@ class InputModel(
         valuedPanel ?: return ""
         return valuedPanel!!.value()
     }
+
+    override fun toString(): String {
+        return "InputModel: [$type, $field, $options]"
+    }
+
 }
 
 interface ValuedPanel {
@@ -156,4 +161,13 @@ class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
         }
         return panel
     }
+
+    fun values(): Map<String, Any> {
+        val m = mutableMapOf<String, Any>()
+        for (input in inputs) {
+            m[input.field] = input.value()
+        }
+        return m.toMap()
+    }
+
 }

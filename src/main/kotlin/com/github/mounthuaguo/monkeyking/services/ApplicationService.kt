@@ -1,6 +1,7 @@
 package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MonkeyBundle
+import com.github.mounthuaguo.monkeyking.lualib.Dialog
 import com.github.mounthuaguo.monkeyking.lualib.IDEA
 import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
@@ -208,6 +209,7 @@ class LuaScriptAction(
         try {
             val env = JsePlatform.standardGlobals()
             env.load(IDEA(scriptName = script.name, project = e.project, actionEvent = e))
+            env.load(Dialog())
             env["menu"] = menu
             val requireTable = LuaTable()
             for (require in script.requires) {
