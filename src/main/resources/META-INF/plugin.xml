@@ -63,6 +63,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Monkey King"
                     anchor="bottom"
+                    canCloseContents="true"
                     icon="AllIcons.General.Modified"
                     factoryClass="com.github.mounthuaguo.monkeyking.ui.ToolWindowFactory"/>
     </extensions>
