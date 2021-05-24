@@ -18,7 +18,7 @@ class InputModel(
 
     constructor(field: String) : this("text", field) {}
 
-    fun compontent(): JComponent {
+    fun component(): JComponent {
         when (type) {
             "text" -> {
                 valuedPanel = TextFieldValuePanel()
@@ -151,7 +151,7 @@ class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
                 )
             )
-            val valuePanel = item.compontent()
+            val valuePanel = item.component()
             panel.add(
                 valuePanel, GridBagConstraints(
                     1, idx, 2, 1, 1.0, 0.0,
