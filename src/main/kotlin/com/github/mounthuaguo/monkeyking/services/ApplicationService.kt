@@ -213,10 +213,11 @@ class LuaScriptAction(
             ).globals()
             env["menu"] = menu
             val requireTable = LuaTable()
-            for (require in script.requires) {
-                val chuck = env.load(require.data)
-                requireTable[1] = chuck.call()
-            }
+//            for (require in script.requires) {
+//                println("load require: ${require.uri}, ${require.source}")
+//                val chuck = env.load(require.source)
+//                requireTable[1] = chuck.call()
+//            }
             env["require"] = requireTable
             val chuck = env.load(script.raw)
             chuck.call()

@@ -29,10 +29,7 @@ import com.intellij.ui.components.JBList
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.BorderLayout
 import java.awt.Color
@@ -183,6 +180,13 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
             }
             m[s.name] = Unit
         }
+
+        for (s in scripts) {
+//            for (r in s.requires) {
+//                println("$s, $r")
+//            }
+        }
+
         state.setScripts(scripts)
         state.state
     }
@@ -212,7 +216,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         return false
     }
 
-    private class ScriptEditorPanel(
+    private inner class ScriptEditorPanel(
         val myProject: Project,
         val scriptHasChanged: (ScriptModel) -> Unit
     ) : JPanel(GridBagLayout()) {
@@ -298,14 +302,14 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         }
 
         private fun scriptHasChanged() {
-            job?.cancel()
-            job = GlobalScope.launch {
-                delay(1000L)
-                val text = myScriptEditor?.document?.text
-                val scriptModel = text?.let { ScriptModel(myScriptModel?.language ?: "lua", it) }
-                resetErrorMessage(scriptModel!!)
+            val text = myScriptEditor?.document?.text
+            text?.let {
+                val scriptModel = ScriptModel(myScriptModel?.language ?: "lua", it)
+                resetErrorMessage(scriptModel)
                 scriptHasChanged(scriptModel)
+                return
             }
+            myErrorPanel?.text = "Script can't be empty"
         }
 
         private fun resetErrorMessage(scriptModel: ScriptModel) {
@@ -452,7 +456,7 @@ class MKConfigureBrowserComponent(
 
     private fun queryScripts() {
         scriptLoadingDecorator!!.startLoading(false)
-        GlobalScope.launch {
+        ApplicationManager.getApplication().executeOnPooledThread {
             val result = runCatching {
                 val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
                 val response = URL(url).readText()

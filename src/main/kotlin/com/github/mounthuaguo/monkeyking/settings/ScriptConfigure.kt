@@ -50,4 +50,5 @@ class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll 
         return MonkeyBundle.message("configureName")
     }
 
+
 }

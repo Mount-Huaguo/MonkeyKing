@@ -7,7 +7,6 @@ import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import org.luaj.vm2.Globals
 import org.luaj.vm2.lib.jse.JsePlatform
-import java.net.URL
 import java.util.*
 import javax.script.Compilable
 import javax.script.ScriptEngineManager
@@ -17,9 +16,6 @@ enum class ScriptLanguage(val value: String) {
     Lua("lua"), Js("js")
 
 }
-
-data class ScriptMenu(val id: String, val name: String)
-data class ScriptRequire(val uri: String, val data: String)
 
 const val luaScriptModelTemplate = """-- @start
 -- @namespace       namespace.unspecified
@@ -56,7 +52,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     var name: String = ""
     var description: String? = ""
     var type: String = ""
-    var requires: List<ScriptRequire> = listOf()
+    var requires: List<String> = listOf()
     var actions: List<String> = listOf()
     var enabled: Boolean = true
 
@@ -68,14 +64,14 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
         if (language != ScriptLanguage.Lua.value && language != ScriptLanguage.Js.value) {
             return "Language only support ${ScriptLanguage.Lua.value} and ${ScriptLanguage.Js.value}."
         }
-        if (!Regex("^[vV0-9.]{1,64}$").matches(version)) {
+        if (!Regex("^[vV]?[0-9.]{1,64}$").matches(version)) {
             return "Version format error"
         }
         if (!Regex("^[a-zA-z0-9_.]{1,256}$").matches(namespace)) {
             return "Namespace format error"
         }
         if (type != "action" && type != "template") { // todo support listener
-            return "Action can be action or template"
+            return "Type can be action or template"
         }
         if (!Regex("^[-a-zA-z0-9_ .]{1,256}$").matches(name)) {
             return """
@@ -96,6 +92,18 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     }
 
     private fun parse() {
+        val headers = scanHeaders()
+        // parse headers
+        version = parseField(headers, "version")
+        namespace = parseField(headers, "namespace")
+        name = parseField(headers, "name")
+        description = parseField(headers, "description")
+        type = parseField(headers, "type")
+        actions = parseFields(headers, "action")
+        requires = parseFields(headers, "require")
+    }
+
+    private fun scanHeaders(): List<String> {
         // scan headers
         // find start and end comment
         val lines = raw.split("\n")
@@ -114,31 +122,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
             }
             headers.add(line)
         }
-
-        // parse headers
-        version = parseField(headers, "version")
-        namespace = parseField(headers, "namespace")
-        name = parseField(headers, "name")
-        description = parseField(headers, "description")
-        type = parseField(headers, "type")
-        actions = parseFields(headers, "action")
-        val requireRaw = parseFields(headers, "require")
-        val rs = mutableListOf<ScriptRequire>()
-        for (uri in requireRaw) {
-            // TODO use async request
-            println("requireRaw.uri $uri")
-            val raw = URL(uri).readText()
-            rs.add(ScriptRequire(uri, raw))
-        }
-        requires = rs
-    }
-
-    fun allMenus(): List<ScriptMenu> {
-        val r = mutableListOf<ScriptMenu>()
-        for (menu in actions) {
-            r.add(ScriptMenu(genMenuId(menu), menu))
-        }
-        return r
+        return headers
     }
 
     private fun parseField(headers: List<String>, field: String): String {
