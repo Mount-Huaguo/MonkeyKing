@@ -9,20 +9,42 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBLabel
+import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.annotations.Nullable
 import java.awt.BorderLayout
 import java.awt.Dimension
-import java.awt.GridLayout
 import java.awt.event.ActionEvent
 import javax.swing.Action
 import javax.swing.JComponent
 import javax.swing.JPanel
 
+
+private const val luaBaseTemplate = """--
+-- todo
+-- 
+
+-- insert code here
+
+return source
+
+"""
+
+private const val jsBaseTemplate = """//
+//
+//  
+
+(function() {
+    // insert code here
+    return source
+})()
+
+"""
+
 class ScriptDialogWrapper(
     private val language: String,
     private var sourceText: String,
-    private var template: String,
     private val callback: (String, String) -> Unit
 ) :
     DialogWrapper(false) {
@@ -30,7 +52,7 @@ class ScriptDialogWrapper(
     private var sourceEditor: Editor? = null
     private var targetEditor: Editor? = null
     private var scriptEditor: Editor? = null
-    private var panel: JPanel? = null
+    private var panel: JPanel = BorderLayoutPanel()
 
     private var targetDocument: Document? = null
 
@@ -84,13 +106,13 @@ class ScriptDialogWrapper(
     override fun createCenterPanel(): JComponent {
         println("createCenterPanel")
 
-
-        if (template == null) {
-            template = MonkeyBundle.getMessage("luaTemplate")
-            if (language == "js") {
-                template = MonkeyBundle.getMessage("jsTemplate")
-            }
+        val template = if (language == "js") {
+            jsBaseTemplate
+        } else {
+            luaBaseTemplate
         }
+        val middleSplitter = JBSplitter(false, 0.5f, 0.2f, 0.8f)
+        val leftSplitter = JBSplitter(true, 0.5f, 0.2f, 0.8f)
 
         val factory = EditorFactory.getInstance()
         val sourceDocument: Document = factory.createDocument(sourceText)
@@ -116,15 +138,14 @@ class ScriptDialogWrapper(
         })
         scriptEditor = createEditor("script.$language", scriptDocument, true)
 
-        panel = JPanel(GridLayout(1, 2, 10, 10))
+        leftSplitter.firstComponent = wrapEditor("Source", sourceEditor!!)
+        leftSplitter.secondComponent = wrapEditor("Target", targetEditor!!)
+        middleSplitter.firstComponent = wrapEditor("Script", scriptEditor!!)
+        middleSplitter.secondComponent = leftSplitter
 
-        val leftPanel = JPanel(GridLayout(2, 1, 10, 10))
-        leftPanel.add(wrapEditor("Source", sourceEditor!!))
-        leftPanel.add(wrapEditor("Target", targetEditor!!))
-        panel!!.add(leftPanel)
-        panel!!.add(wrapEditor("Script", scriptEditor!!))
-        panel!!.preferredSize = Dimension(800, 600)
-        return panel!!
+        panel.add(middleSplitter, BorderLayout.CENTER)
+        panel.preferredSize = Dimension(800, 600)
+        return panel
     }
 
     // custom actions

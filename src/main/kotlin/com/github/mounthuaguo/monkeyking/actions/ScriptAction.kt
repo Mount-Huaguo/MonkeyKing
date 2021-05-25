@@ -1,6 +1,5 @@
 package com.github.mounthuaguo.monkeyking.actions
 
-import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.ui.ScriptDialogWrapper
 import com.intellij.codeInspection.ex.GlobalInspectionContextImpl.NOTIFICATION_GROUP
 import com.intellij.notification.Notification
@@ -34,19 +33,12 @@ class ScriptActionWrap(
     private val dialog: ScriptDialogWrapper
 
     init {
-        scriptText = if (language == "lua") {
-            MonkeyBundle.message("luaTemplate")
-        } else {
-            MonkeyBundle.message("jsTemplate")
-        }
-
         sourceText = if (editor.selectionModel.hasSelection()) {
             editor.selectionModel.selectedText.toString()
         } else {
             editor.document.text
         }
-
-        dialog = ScriptDialogWrapper(language, sourceText, scriptText) { typ, text ->
+        dialog = ScriptDialogWrapper(language, sourceText) { typ, text ->
             handleCallBack(typ, text)
         }
     }
