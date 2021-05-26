@@ -2,12 +2,14 @@ package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.lualib.IdeaPlatform
+import com.github.mounthuaguo.monkeyking.settings.ScriptCacheService
 import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
 import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
@@ -204,6 +206,12 @@ class LuaScriptAction(
     private val menu: String,
     private val e: AnActionEvent
 ) {
+
+    private fun showError(msg: String) {
+        project ?: return
+        ToolWindowUtil(project, script.name).log(msg)
+    }
+
     fun run() {
         try {
             val env = IdeaPlatform(
@@ -212,20 +220,52 @@ class LuaScriptAction(
                 actionEvent = e
             ).globals()
             env["menu"] = menu
-            val requireTable = LuaTable()
-//            for (require in script.requires) {
-//                println("load require: ${require.uri}, ${require.source}")
-//                val chuck = env.load(require.source)
-//                requireTable[1] = chuck.call()
-//            }
-            env["require"] = requireTable
-            val chuck = env.load(script.raw)
-            chuck.call()
+            if (script.requires.isNotEmpty()) {
+                val app = ApplicationManager.getApplication()
+                app.executeOnPooledThread {
+                    val cache = ScriptCacheService.getInstance()
+                    val requireTable = LuaTable()
+                    script.requires.forEachIndexed() { index, it ->
+//                        println("load require: $it")
+                        val source = cache.loadRepo(it)
+                        if (source == "") {
+                            app.invokeLater({
+                                showError("Error load require: $it")
+                            }, ModalityState.any())
+                            return@executeOnPooledThread
+                        }
+                        try {
+                            val chuck = env.load(source)
+                            requireTable["${(index + 'a'.toByte().toInt()).toChar()}"] = chuck.call()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            app.invokeLater({
+                                showError("Error exec require: $it")
+                            }, ModalityState.any())
+                        }
+                    }
+                    env["require"] = requireTable
+                    app.invokeLater({
+                        try {
+                            val chuck = env.load(script.raw)
+                            chuck.call()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            showError("Error exec script: ${script.name}")
+                        }
+                    }, ModalityState.any())
+                }
+            } else {
+                env["require"] = LuaTable()
+                val chuck = env.load(script.raw)
+                chuck.call()
+            }
+
         } catch (e: Exception) {
             e.printStackTrace()
-            project ?: return
-            ToolWindowUtil(project, script.name).log(e.toString())
+            showError(e.toString())
         }
+
     }
 }
 
