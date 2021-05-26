@@ -45,7 +45,7 @@ const val jsScriptModelTemplate = """// @start
 
 """
 
-data class ScriptModel(val language: String = "lua", var raw: String = "") {
+data class ScriptModel(val language: String = "lua", var raw: String = "", var enabled: Boolean = true) {
 
     var namespace: String = ""
     var version: String = ""
@@ -54,7 +54,6 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     var type: String = ""
     var requires: List<String> = listOf()
     var actions: List<String> = listOf()
-    var enabled: Boolean = true
 
     init {
         parse()
@@ -160,7 +159,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "") {
     }
 
     override fun toString(): String {
-        return "ScriptModel[$namespace, $version, $name, $type, $actions]"
+        return "ScriptModel[$namespace, $version, $name, $type, $actions, $enabled]"
     }
 
 }
@@ -182,6 +181,8 @@ class ConfigureState {
         }
         scripts = list.toList()
     }
+
+
 }
 
 @State(name = "com.github.mounthuaguo.monkeyking", storages = [Storage("monkeyking.xml")])
@@ -201,19 +202,29 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
     }
 
     override fun getState(): ConfigureState {
-        println("PersistentStateComponent getState $mkState")
         return mkState
     }
 
     fun getScripts(): List<ScriptModel> {
-        println("PersistentStateComponent getScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
         return mkState.scripts
     }
 
+    fun cloneScripts(): List<ScriptModel> {
+        val newScripts = mutableListOf<ScriptModel>()
+        for (script in mkState.scripts) {
+            newScripts.add(script.copy())
+        }
+        return newScripts.toList()
+    }
+
+
     fun setScripts(scripts: List<ScriptModel>) {
-        mkState.scripts = scripts
+        val newScripts = mutableListOf<ScriptModel>()
+        for (script in scripts) {
+            newScripts.add(script.copy())
+        }
+        mkState.scripts = newScripts.toList()
         mkState.timestamp = Date().time
-        println("PersistentStateComponent setScripts ${mkState.scripts}, timestamp: ${mkState.timestamp}")
     }
 
 }

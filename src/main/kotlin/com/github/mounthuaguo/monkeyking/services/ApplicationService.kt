@@ -151,6 +151,9 @@ class ApplicationService : Disposable {
             if (script.type != "action") {
                 continue
             }
+            if (!script.enabled) {
+                continue
+            }
             for (menu in script.actions) {
                 val id = script.genMenuId(menu)
                 val action = ScriptAction(script, menu)

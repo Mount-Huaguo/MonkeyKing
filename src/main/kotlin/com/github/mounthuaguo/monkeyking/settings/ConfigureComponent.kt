@@ -18,10 +18,12 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.fileTypes.FileTypeManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
@@ -93,11 +95,9 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         scriptListView.fixedCellHeight = fixedCellHeight
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
         scriptListView.setCheckBoxListListener { index, value ->
-            println("setCheckBoxListListener, $index, $value")
             (scriptListView.model as ScriptListModel).toggleCheckBox(scriptListView.selectedIndex)
         }
         scriptListView.addListSelectionListener {
-            println("addListSelectionListener $it")
             if (it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
@@ -180,15 +180,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
             }
             m[s.name] = Unit
         }
-
-        for (s in scripts) {
-//            for (r in s.requires) {
-//                println("$s, $r")
-//            }
-        }
-
         state.setScripts(scripts)
-        state.state
     }
 
     fun addScript(model: SampleScriptModel, source: String) {
@@ -198,17 +190,19 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
     fun isModified(): Boolean {
         val scripts = (scriptListView.model as ScriptListModel).scripts()
-        println("$scripts, ${state.getScripts()}")
         if (state.getScripts().size != scripts.size) {
             return true
         }
-        val m = mutableMapOf<String, Unit>()
+        val m = mutableMapOf<String, Boolean>()
         val ss = state.getScripts()
         for (s in ss) {
-            m[s.raw] = Unit
+            m[s.raw] = s.enabled
         }
         for (s in scripts) {
             if (!m.containsKey(s.raw)) {
+                return true
+            }
+            if (m[s.raw]!! != s.enabled) {
                 return true
             }
         }
@@ -275,10 +269,16 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
             val options = ColorAndFontOptions()
             options.reset()
             options.selectScheme(scheme.name)
+            val fileExtension: String = FileUtilRt.getExtension("script.${myScriptModel?.language}")
 
             val editorFactory = EditorFactory.getInstance()
             val doc: Document = createDocument()
-            val editor = editorFactory.createEditor(doc, myProject) as EditorEx
+            val editor = editorFactory.createEditor(
+                doc,
+                myProject,
+                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+                false,
+            ) as EditorEx
             editor.colorsScheme = scheme;
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
@@ -322,7 +322,6 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         }
 
         private fun createDocument(): Document {
-            println("createDocument myScriptModel?.raw $myScriptModel ")
             return EditorFactory.getInstance().createDocument(myScriptModel?.raw ?: "")
         }
 
@@ -585,9 +584,16 @@ class MKConfigureBrowserComponent(
 
         private fun createEditor(text: String): Editor {
             val editorFactory = EditorFactory.getInstance()
-            val doc: Document = EditorFactory.getInstance().createDocument(text)
+            val fileExtension: String = FileUtilRt.getExtension("script.${mySampleScriptModel?.language}")
+
+            val doc: Document = editorFactory.createDocument(text)
             doc.setReadOnly(true)
-            val editor = editorFactory.createEditor(doc, myProject)
+            val editor = editorFactory.createEditor(
+                doc,
+                myProject,
+                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+                false,
+            )
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
             editorSettings.isLineMarkerAreaShown = false
