@@ -90,7 +90,13 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
 
     private fun setupListView() {
-        val scriptListModel = ScriptListModel(state.getScripts().toMutableList())
+        var ss = state.cloneScripts()
+        for (s in ss) {
+            println("s.enable, ${s.enabled}")
+        }
+
+
+        val scriptListModel = ScriptListModel(state.cloneScripts().toMutableList())
         scriptListView.model = scriptListModel
         scriptListView.fixedCellHeight = fixedCellHeight
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
