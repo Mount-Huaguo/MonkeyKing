@@ -1,5 +1,6 @@
 package com.github.mounthuaguo.monkeyking.actions
 
+import com.github.mounthuaguo.monkeyking.settings.ScriptCacheService
 import com.github.mounthuaguo.monkeyking.ui.ScriptDialogWrapper
 import com.intellij.codeInspection.ex.GlobalInspectionContextImpl.NOTIFICATION_GROUP
 import com.intellij.notification.Notification
@@ -8,11 +9,14 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.SelectionModel
 import com.intellij.openapi.project.Project
+import org.luaj.vm2.LuaTable
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard
@@ -38,32 +42,30 @@ class ScriptActionWrap(
         } else {
             editor.document.text
         }
-        dialog = ScriptDialogWrapper(language, sourceText) { typ, text ->
-            handleCallBack(typ, text)
+        dialog = ScriptDialogWrapper(language, sourceText) { typ, text, requires ->
+            handleCallBack(typ, text, requires)
         }
     }
 
     fun showDialog() {
-        println("showDialog")
-//        targetText = execScript(sourceText, scriptText)
-//        dialog.setTargetDocument(targetText)
-        if (dialog.showAndGet()) {
-            // todo
-        }
-        println("showDialog success")
+        dialog.showAndGet()
     }
 
-    private fun handleCallBack(typ: String, text: String) {
+    private fun handleCallBack(typ: String, text: String, requires: List<String>?) {
         when (typ) {
             "source" -> {
                 sourceText = text
-                targetText = execScript(sourceText, scriptText)
-                dialog.setTargetDocument(targetText)
+                execScript(sourceText, scriptText, requires) {
+                    targetText = it
+                    dialog.setTargetDocument(targetText)
+                }
             }
             "script" -> {
                 scriptText = text
-                targetText = execScript(sourceText, scriptText)
-                dialog.setTargetDocument(targetText)
+                execScript(sourceText, scriptText, requires) {
+                    targetText = it
+                    dialog.setTargetDocument(targetText)
+                }
             }
             "copy" -> {
                 val selection = StringSelection(targetText)
@@ -90,34 +92,61 @@ class ScriptActionWrap(
         }
     }
 
-    private fun execScript(source: String, script: String): String {
-        return if (language == "lua") {
-            execLua(source, script)
+    private fun execScript(
+        source: String,
+        script: String,
+        requires: List<String>?,
+        callBack: (String) -> Unit
+    ) {
+        if (language == "lua") {
+            execLua(source, script, requires, callBack)
         } else {
-            execJs(source, script)
+            execJs(source, script, requires, callBack)
         }
     }
 
 
-    private fun execLua(source: String, script: String): String {
-        return try {
+    private fun execLua(source: String, script: String, requires: List<String>?, callback: (String) -> Unit) {
+        try {
             val jse = JsePlatform.standardGlobals()
             jse["source"] = source
+            val rt = LuaTable()
+            if (requires != null && requires.isNotEmpty()) {
+                val app = ApplicationManager.getApplication()
+                app.executeOnPooledThread {
+                    try {
+                        requires.forEachIndexed { index, s ->
+                            val txt = ScriptCacheService.getInstance().loadRepo(s)
+                            rt["${(index + 'a'.toByte().toInt()).toChar()}"] = jse.load(txt).call()
+                        }
+                        jse["require"] = rt
+                        app.invokeLater({
+                            app.runWriteAction {
+                                try {
+                                    callback(jse.load(script).call().checkstring().toString())
+                                } catch (e: Exception) {
+                                    callback(e.toString())
+                                }
+                            }
+                        }, ModalityState.any())
+                    } catch (e: Exception) {
+                        callback(e.toString())
+                    }
+                }
+                return
+            }
+            jse["require"] = rt
             val chuck = jse.load(script)
-            chuck.call().checkstring().toString()
+            callback(chuck.call().checkstring().toString())
         } catch (e: Exception) {
-            e.toString()
+            callback(e.toString())
         }
     }
 
-    private fun execJs(source: String, script: String): String {
-        return try {
-            val jse = JsePlatform.standardGlobals()
-            jse["source"] = source
-            val chuck = jse.load(script)
-            chuck.call().checkstring().toString()
+    private fun execJs(source: String, script: String, requires: List<String>?, callBack: (String) -> Unit) {
+        try {
+            // todo
         } catch (e: Exception) {
-            e.toString()
         }
     }
 

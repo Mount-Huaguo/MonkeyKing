@@ -51,7 +51,7 @@ private const val jsBaseTemplate = """//
 class ScriptDialogWrapper(
     private val language: String,
     private var sourceText: String,
-    private val callback: (String, String) -> Unit
+    private val callback: (String, String, List<String>?) -> Unit
 ) :
     DialogWrapper(false) {
 
@@ -63,6 +63,8 @@ class ScriptDialogWrapper(
     private var targetDocument: Document? = null
 
     private var templates: List<ScriptModel>? = null
+
+    private var selectedScipt: ScriptModel? = null
 
     init {
         init()
@@ -96,11 +98,11 @@ class ScriptDialogWrapper(
     }
 
     private fun sourceTextHasChanged(txt: String) {
-        callback("source", txt)
+        callback("source", txt, selectedScipt?.requires)
     }
 
     private fun scriptTextHasChanged(txt: String) {
-        callback("script", txt)
+        callback("script", txt, selectedScipt?.requires)
     }
 
     fun setTargetDocument(txt: String) {
@@ -140,6 +142,7 @@ class ScriptDialogWrapper(
     private fun selectTemplate(name: String) {
         getTemplate().forEachIndexed { i, t ->
             if ("$i. ${t.name}" == name) {
+                selectedScipt = t
                 ApplicationManager.getApplication().runWriteAction {
                     scriptEditor?.document?.setText(t.raw)
                 }
@@ -222,7 +225,7 @@ class ScriptDialogWrapper(
         val copy = object : DialogWrapperAction("Copy to Clipboard") {
             override fun doAction(e: ActionEvent?) {
                 targetEditor ?: return
-                callback("copy", targetEditor!!.document.text)
+                callback("copy", targetEditor!!.document.text, selectedScipt?.requires)
                 close(1)
             }
         }
@@ -230,7 +233,7 @@ class ScriptDialogWrapper(
         val replace = object : DialogWrapperAction("Replace") {
             override fun doAction(e: ActionEvent?) {
                 targetEditor ?: return
-                callback("replace", targetEditor!!.document.text)
+                callback("replace", targetEditor!!.document.text, selectedScipt?.requires)
                 close(1)
             }
         }
