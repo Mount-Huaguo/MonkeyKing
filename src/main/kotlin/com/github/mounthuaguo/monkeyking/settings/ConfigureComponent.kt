@@ -23,6 +23,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
@@ -391,7 +392,9 @@ class MKConfigureBrowserComponent(
     private fun setupFirstPanel() {
         leftPanel.add(searchBar, BorderLayout.NORTH)
         setupListView()
-        scriptLoadingDecorator = LoadingDecorator(listView, {}, 0)
+        val disposable = Disposer.newDisposable()
+        Disposer.register(myProject, disposable);
+        scriptLoadingDecorator = LoadingDecorator(listView, disposable, 0)
         leftPanel.add(scriptLoadingDecorator!!.component, BorderLayout.CENTER)
         add(splitter, BorderLayout.CENTER)
     }
@@ -509,9 +512,15 @@ class MKConfigureBrowserComponent(
         private var editor: Editor? = null;
         private var editorPanel = BorderLayoutPanel()
         private var descriptionPanel = JEditorPane()
-        private var loadingDecorator = LoadingDecorator(mainPanel, {}, 0)
+        private var loadingDecorator: LoadingDecorator
         private var mySampleScriptModel: SampleScriptModel? = null;
         private var viewWasLoaded = false;
+
+        init {
+            val disposable = Disposer.newDisposable()
+            Disposer.register(myProject, disposable);
+            loadingDecorator = LoadingDecorator(mainPanel, disposable, 0)
+        }
 
         private fun setupUI() {
             if (viewWasLoaded) {
