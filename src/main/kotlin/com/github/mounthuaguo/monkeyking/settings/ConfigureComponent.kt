@@ -23,7 +23,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.LoadingDecorator
 import com.intellij.openapi.ui.popup.JBPopupFactory
-import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
@@ -32,17 +32,17 @@ import com.intellij.ui.components.JBList
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
-import kotlinx.coroutines.Job
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.net.URL
+import java.util.*
 import javax.swing.*
 
 
-const val fixedCellHeight = 32;
+const val fixedCellHeight = 32
 
 data class SampleScriptModel(val name: String, val language: String, val intro: String, val source: String) {
     fun invalid(): Boolean {
@@ -50,7 +50,7 @@ data class SampleScriptModel(val name: String, val language: String, val intro: 
     }
 }
 
-class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPanel() {
+class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 
     private var scriptListView: CheckBoxList<ScriptModel> = ScriptCheckBoxList()
     private val state = ConfigureStateService.getInstance()
@@ -91,17 +91,11 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
 
     private fun setupListView() {
-        var ss = state.cloneScripts()
-        for (s in ss) {
-            println("s.enable, ${s.enabled}")
-        }
-
-
         val scriptListModel = ScriptListModel(state.cloneScripts().toMutableList())
         scriptListView.model = scriptListModel
         scriptListView.fixedCellHeight = fixedCellHeight
         scriptListView.selectionMode = ListSelectionModel.SINGLE_SELECTION
-        scriptListView.setCheckBoxListListener { index, value ->
+        scriptListView.setCheckBoxListListener { _, _ ->
             (scriptListView.model as ScriptListModel).toggleCheckBox(scriptListView.selectedIndex)
         }
         scriptListView.addListSelectionListener {
@@ -122,14 +116,14 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
 
     private fun anActionGroup(): DefaultActionGroup {
 
-        val newLuaAction: AnAction = object : DumbAwareAction("Add lua script") {
+        val newLuaAction: AnAction = object : DumbAwareAction("Add Lua Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 val script = ScriptModel("lua", luaScriptModelTemplate)
                 (scriptListView.model as ScriptListModel).add(script)
             }
         }
 
-        val newJsAction: AnAction = object : DumbAwareAction("Add js Script") {
+        val newJsAction: AnAction = object : DumbAwareAction("Add Javascript Script") {
             override fun actionPerformed(e: AnActionEvent) {
                 val script = ScriptModel("js", jsScriptModelTemplate)
                 (scriptListView.model as ScriptListModel).add(script)
@@ -148,7 +142,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
                     e.dataContext,
                     JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
                     false
-                );
+                )
                 popup.show(RelativePoint.getSouthWestOf(toolbarDecorator!!.actionsPanel))
             }
         }
@@ -223,11 +217,10 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
     ) : JPanel(GridBagLayout()) {
 
         private var myScriptEditorPanel = BorderLayoutPanel()
-        private var myScriptEditor: Editor? = null;
-        private var myErrorPanel: JEditorPane? = null;
-        private var myScriptModel: ScriptModel? = null;
+        private var myScriptEditor: Editor? = null
+        private var myErrorPanel: JEditorPane? = null
+        private var myScriptModel: ScriptModel? = null
         private val mySpliterator = JBSplitter(true, 1.0f, 0.5f, 1.0f)
-        private var job: Job? = null;
 
         init {
             setupUI()
@@ -264,7 +257,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
         private fun reset() {
             myScriptEditor?.let {
                 println("release editor: $myScriptEditor")
-                EditorFactory.getInstance().releaseEditor(myScriptEditor!!);
+                EditorFactory.getInstance().releaseEditor(myScriptEditor!!)
             }
             myScriptEditor = createEditor()
             this.revalidate()
@@ -286,7 +279,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
                 FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
                 false,
             ) as EditorEx
-            editor.colorsScheme = scheme;
+            editor.colorsScheme = scheme
             val editorSettings = editor.settings
             editorSettings.isVirtualSpace = false
             editorSettings.isLineMarkerAreaShown = false
@@ -341,7 +334,7 @@ class ScriptConfigureComponent(private val myProject: Project) : BorderLayoutPan
     }
 }
 
-class MKConfigureBrowserComponent(
+class ConfigureBrowserComponent(
     private val myProject: Project,
     private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
 ) : BorderLayoutPanel() {
@@ -349,13 +342,14 @@ class MKConfigureBrowserComponent(
     private val leftPanel = BorderLayoutPanel()
     private val searchBar = PluginSearchTextField()
     private val listView = JBList<SampleScriptModel>()
-    private val splitter = JBSplitter()
+    private val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
     private var scriptList = listOf<SampleScriptModel>()
     private var scriptRepo = listOf<SampleScriptModel>()
     private val luaEnv = JsePlatform.standardGlobals()
     private var scriptLoadingDecorator: LoadingDecorator? = null
     private var isLoad = false
-    private var rightPanel = RightPanel(myProject) { model, source ->
+    private val urlCache = URLCache()
+    private var rightPanel = ConfigureBrowserSecondPanel(myProject) { model, source ->
         useButtonOnClick(model, source)
     }
 
@@ -403,12 +397,15 @@ class MKConfigureBrowserComponent(
         listView.model = listViewModel
         listView.selectionMode = ListSelectionModel.SINGLE_SELECTION
         listView.fixedCellHeight = fixedCellHeight
-        listView.setCellRenderer { list, value, index, isSelected, cellHasFocus ->
+        listView.setCellRenderer { _, value, _, isSelected, _ ->
             val label = JLabel(value.name)
             label.isOpaque = true
             label.background = Color.white
             if (isSelected) {
                 label.background = Color(38, 117, 191)
+            } else {
+                label.background = null;
+                label.isOpaque = false;
             }
             return@setCellRenderer label
         }
@@ -421,33 +418,28 @@ class MKConfigureBrowserComponent(
         }
     }
 
+    private fun getUri(path: String): String {
+        return MonkeyBundle.message("repositoryBaseUrl") + "/" + path
+    }
+
     private fun reloadSecondPanel(index: Int, sampleScriptModel: SampleScriptModel) {
         rightPanel.startLoading()
-        ApplicationManager.getApplication().executeOnPooledThread {
-            try {
-
-                var intro = ""
-                if (sampleScriptModel.intro != "") {
-                    val introUrl = MonkeyBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.intro
-                    intro = URL(introUrl).readText()
+        if (sampleScriptModel.intro != "") {
+            urlCache.loadSource(getUri(sampleScriptModel.intro)) {
+                if (it == null) {
+                    with(rightPanel) { this.resetDescription("") }
+                    return@loadSource
                 }
-                println("intro: $intro")
-                val sourceUrl = MonkeyBundle.message("repositoryBaseUrl") + "/" + sampleScriptModel.source
-                val source = URL(sourceUrl).readText()
-                println("source: $source")
-
-                ApplicationManager.getApplication().invokeLater({
-                    assert(SwingUtilities.isEventDispatchThread())
-                    println(" ApplicationManager.getApplication, $source, $intro")
-                    rightPanel.stopLoading()
-                    rightPanel.reset(source, intro, sampleScriptModel)
-                }, ModalityState.any())
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                rightPanel.stopLoading()
-                // todo show error message
+                with(rightPanel) { this.resetDescription(it.source) }
             }
+        }
+
+        urlCache.loadSource(getUri(sampleScriptModel.source)) {
+            if (it == null) {
+                with(rightPanel) { this.resetDescription("") }
+                return@loadSource
+            }
+            with(rightPanel) { this.resetScript(it.source) }
         }
     }
 
@@ -502,13 +494,14 @@ class MKConfigureBrowserComponent(
         listViewModel.refresh()
     }
 
-    inner class RightPanel(
+    inner class ConfigureBrowserSecondPanel(
         private val myProject: Project,
         private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
     ) {
 
         private val mainPanel = BorderLayoutPanel()
         private val spliterator = JBSplitter(true, 0.7f, 0.4f, 0.9f)
+
         private var editor: Editor? = null;
         private var editorPanel = BorderLayoutPanel()
         private var descriptionPanel = JEditorPane()
@@ -517,6 +510,7 @@ class MKConfigureBrowserComponent(
         private var viewWasLoaded = false;
 
         init {
+            mainPanel.border = BorderFactory.createEmptyBorder(1, 1, 1, 1)
             val disposable = Disposer.newDisposable()
             Disposer.register(myProject, disposable);
             loadingDecorator = LoadingDecorator(mainPanel, disposable, 0)
@@ -588,6 +582,15 @@ class MKConfigureBrowserComponent(
             loadingDecorator.stopLoading()
         }
 
+        fun resetDescription(description: String) {
+            descriptionPanel.text = description
+        }
+
+        fun resetScript(source: String) {
+            // todo
+        }
+
+
         fun reset(source: String, description: String, modelSample: SampleScriptModel) {
             setupUI()
             println("reset: $source, $description")
@@ -632,4 +635,111 @@ class MKConfigureBrowserComponent(
         }
     }
 
+    class URLCache {
+
+        data class Source(val url: String, val source: String, val timestamp: Long)
+
+        private val repository = mutableListOf<SampleScriptModel>()
+        private var timestamp = Date().time
+
+        private val cache = mutableMapOf<String, Source>()
+
+        fun load(callBack: (List<SampleScriptModel>) -> Unit) {
+            val scripts = this.getScripts()
+            if (scripts.isNotEmpty()) {
+                return callBack(scripts)
+            }
+
+            val app = ApplicationManager.getApplication()
+            app.executeOnPooledThread() {
+                try {
+                    val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
+                    val response = URL(url).readText()
+                    this.processSampleScriptRaw(response)
+                    println("response: $response")
+                    app.invokeLater(
+                        {
+                            callBack(this.getScripts())
+                        },
+                        ModalityState.any()
+                    )
+                } catch (e: Exception) {
+                    callBack(this.getScripts())
+                }
+            }
+        }
+
+        private fun getScripts(): List<SampleScriptModel> = synchronized(repository) {
+            if (Date().time - timestamp > 5 * 60 * 1000) {
+                repository.clear()
+            }
+            return repository.toList()
+        }
+
+        private fun processSampleScriptRaw(source: String) {
+            synchronized(repository) {
+                val luaEnv = JsePlatform.standardGlobals()
+                val chuck = luaEnv.load(source)
+                val table = chuck.call().checktable()
+                table ?: return
+                for (key in table.keys()) {
+                    val value = table[key]
+                    val sm = SampleScriptModel(
+                        name = if (value["name"].isnil()) "" else value["name"].toString(),
+                        language = if (value["language"].isnil()) "" else value["language"].toString(),
+                        intro = if (value["intro"].isnil()) "" else value["intro"].toString(),
+                        source = if (value["source"].isnil()) "" else value["source"].toString(),
+                    )
+                    if (sm.invalid()) {
+                        continue
+                    }
+                    repository.add(sm)
+                }
+                timestamp = Date().time
+            }
+        }
+
+        private fun getSource(uri: String): Source? {
+            synchronized(cache) {
+                if (cache.containsKey(uri)) {
+                    val source = cache[uri]!!
+                    if (Date().time - source.timestamp > 5 * 60 * 1000) {
+                        return null
+                    }
+                    return source
+                }
+                return null
+            }
+        }
+
+
+        fun loadSource(uri: String, callback: (Source?) -> Unit) {
+            var source = getSource(uri)
+            if (source != null) {
+                callback(source)
+                return
+            }
+            val app = ApplicationManager.getApplication()
+            app.executeOnPooledThread {
+                try {
+                    val response = URL(uri).readText()
+                    this.processSampleScriptRaw(response)
+                    println("response: $response")
+                    app.invokeLater(
+                        {
+                            source = Source(uri, response, Date().time)
+                            synchronized(callback) {
+                                cache[uri] = source!!
+                            }
+                            callback(source!!)
+                        },
+                        ModalityState.any()
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    callback(null)
+                }
+            }
+        }
+    }
 }

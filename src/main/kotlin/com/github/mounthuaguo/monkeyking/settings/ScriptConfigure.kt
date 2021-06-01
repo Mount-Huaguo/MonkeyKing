@@ -15,7 +15,7 @@ class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll 
     private val mainPanel = BorderLayoutPanel()
     private val tabbedPane = JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
     private val scriptConfigureComponent = ScriptConfigureComponent(myProject)
-    private val browserPanel = MKConfigureBrowserComponent(myProject) { model, source ->
+    private val browserPanel = ConfigureBrowserComponent(myProject) { model, source ->
         tabbedPane.selectedIndex = 0
         scriptConfigureComponent.addScript(model, source)
     }
