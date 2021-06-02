@@ -30,6 +30,7 @@ import com.intellij.ui.*
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
+import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
@@ -347,8 +348,6 @@ class ConfigureBrowserComponent(
         useButtonOnClick(model, source)
     }
 
-    private val luaEnv = JsePlatform.standardGlobals()
-
     private val listViewModel = object : AbstractListModel<SampleScriptModel>() {
         override fun getSize(): Int {
             return scriptList.size
@@ -364,11 +363,23 @@ class ConfigureBrowserComponent(
 
     }
 
+    private val alarm = Alarm()
+
     init {
-//        leftPanel.border = BorderFactory.createLineBorder(Color.gray, 1)
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel.component()
+
+        searchBar.textEditor.document.addDocumentListener(object : DocumentAdapter() {
+            override fun textChanged(e: javax.swing.event.DocumentEvent) {
+                val text = searchBar.text
+                alarm.cancelAllRequests()
+                alarm.addRequest({
+                    handleSearchTextChanged(text)
+                }, 300)
+            }
+        })
     }
+
 
     fun setupUI() {
         if (isLoad) {
@@ -426,44 +437,25 @@ class ConfigureBrowserComponent(
         queryScripts()
     }
 
-    private fun queryScripts() {
-        scriptLoadingDecorator!!.startLoading(false)
-        ApplicationManager.getApplication().executeOnPooledThread {
-            val result = runCatching {
-                val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
-                val response = URL(url).readText()
-                println("response: $response")
-                handleScriptsResponse(response)
+    private fun handleSearchTextChanged(text: String) {
+        val list = mutableListOf<SampleScriptModel>()
+        for (s in scriptRepo) {
+            if (s.name.contains(text, true)) {
+                list.add(s)
             }
-            if (result.isFailure) {
-                println(result)
-            }
-            scriptLoadingDecorator!!.stopLoading()
         }
+        scriptList = list
+        listViewModel.refresh()
     }
 
-    private fun handleScriptsResponse(response: String) {
-        val chuck = luaEnv.load(response)
-        val table = chuck.call().checktable()
-        table ?: return
-        val list = mutableListOf<SampleScriptModel>()
-        for (key in table.keys()) {
-            val value = table[key]
-            val sm = SampleScriptModel(
-                name = if (value["name"].isnil()) "" else value["name"].toString(),
-                language = if (value["language"].isnil()) "" else value["language"].toString(),
-                intro = if (value["intro"].isnil()) "" else value["intro"].toString(),
-                source = if (value["source"].isnil()) "" else value["source"].toString(),
-            )
-            if (sm.invalid()) {
-                continue
-            }
-            list.add(sm)
+    private fun queryScripts() {
+        scriptLoadingDecorator!!.startLoading(false)
+        urlCache.load {
+            scriptRepo = it
+            scriptList = it
+            listViewModel.refresh()
+            scriptLoadingDecorator!!.stopLoading()
         }
-        println("handleScriptsResponse: $list")
-        scriptRepo = list.toList()
-        scriptList = list.toList()
-        listViewModel.refresh()
     }
 
     inner class ConfigureBrowserSecondPanel(
@@ -580,6 +572,31 @@ class ConfigureBrowserComponent(
                 repository.clear()
             }
             return repository.toList()
+        }
+
+        fun load(callBack: (List<SampleScriptModel>) -> Unit) {
+            val scripts = this.getScripts()
+            if (scripts.isNotEmpty()) {
+                return callBack(scripts)
+            }
+
+            val app = ApplicationManager.getApplication()
+            app.executeOnPooledThread() {
+                try {
+                    val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
+                    val response = URL(url).readText()
+                    this.processSampleScriptRaw(response)
+                    println("response: $response")
+                    app.invokeLater(
+                        {
+                            callBack(this.getScripts())
+                        },
+                        ModalityState.any()
+                    )
+                } catch (e: Exception) {
+                    callBack(this.getScripts())
+                }
+            }
         }
 
         private fun processSampleScriptRaw(source: String) {
