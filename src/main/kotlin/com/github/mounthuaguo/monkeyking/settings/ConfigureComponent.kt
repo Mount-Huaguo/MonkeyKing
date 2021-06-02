@@ -323,12 +323,6 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             return EditorFactory.getInstance().createDocument(myScriptModel?.raw ?: "")
         }
 
-        fun disposeUIResources() {
-            myScriptEditor?.let {
-                EditorFactory.getInstance().releaseEditor(myScriptEditor!!)
-            }
-        }
-
     }
 }
 
@@ -390,7 +384,7 @@ class ConfigureBrowserComponent(
         leftPanel.add(searchBar, BorderLayout.NORTH)
         setupListView()
         val disposable = Disposer.newDisposable()
-        Disposer.register(myProject, disposable);
+        Disposer.register(myProject, disposable)
         scriptLoadingDecorator = LoadingDecorator(listView, disposable, 0)
         leftPanel.add(scriptLoadingDecorator!!.component, BorderLayout.CENTER)
         add(splitter, BorderLayout.CENTER)
@@ -407,8 +401,8 @@ class ConfigureBrowserComponent(
             if (isSelected) {
                 label.background = Color(38, 117, 191)
             } else {
-                label.background = null;
-                label.isOpaque = false;
+                label.background = null
+                label.isOpaque = false
             }
             return@setCellRenderer label
         }
@@ -421,16 +415,8 @@ class ConfigureBrowserComponent(
         }
     }
 
-    private fun getUri(path: String): String {
-        return MonkeyBundle.message("repositoryBaseUrl") + "/" + path
-    }
-
     private fun reloadSecondPanel(index: Int, sampleScriptModel: SampleScriptModel) {
         rightPanel.resetWithModel(sampleScriptModel)
-    }
-
-    private fun reset() {
-
     }
 
     private fun loadScripts() {
@@ -481,7 +467,7 @@ class ConfigureBrowserComponent(
     }
 
     inner class ConfigureBrowserSecondPanel(
-        private val myProject: Project,
+        myProject: Project,
         private val urlCache: URLCache,
         private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
     ) {
@@ -491,13 +477,13 @@ class ConfigureBrowserComponent(
         private var editorPanel: ConfigureBrowserEditorPanel? = null
         private var descriptionPanel = JEditorPane()
         private var loadingDecorator: LoadingDecorator
-        private var mySampleScriptModel: SampleScriptModel? = null;
-        private var viewWasLoaded = false;
+        private var mySampleScriptModel: SampleScriptModel? = null
+        private var viewWasLoaded = false
 
         init {
             mainPanel.border = BorderFactory.createEmptyBorder(1, 1, 1, 1)
             val disposable = Disposer.newDisposable()
-            Disposer.register(myProject, disposable);
+            Disposer.register(myProject, disposable)
             loadingDecorator = LoadingDecorator(mainPanel, disposable, 0)
         }
 
@@ -516,6 +502,12 @@ class ConfigureBrowserComponent(
             val button = JButton("use")
             button.addActionListener {
                 mySampleScriptModel ?: return@addActionListener
+                editorPanel?.let {
+                    val source = editorPanel!!.getSource()
+                    if (source != "") {
+                        useButtonOnClick(mySampleScriptModel!!, source)
+                    }
+                }
             }
             topPanel.add(button, BorderLayout.EAST)
             panel.add(
@@ -572,10 +564,6 @@ class ConfigureBrowserComponent(
             return loadingDecorator.component
         }
 
-        private fun repaint() {
-            mainPanel.repaint()
-            descriptionPanel.repaint()
-        }
     }
 
     class URLCache {
@@ -586,31 +574,6 @@ class ConfigureBrowserComponent(
         private var timestamp = Date().time
 
         private val cache = mutableMapOf<String, Response>()
-
-        fun load(callBack: (List<SampleScriptModel>) -> Unit) {
-            val scripts = this.getScripts()
-            if (scripts.isNotEmpty()) {
-                return callBack(scripts)
-            }
-
-            val app = ApplicationManager.getApplication()
-            app.executeOnPooledThread() {
-                try {
-                    val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
-                    val response = URL(url).readText()
-                    this.processSampleScriptRaw(response)
-                    println("response: $response")
-                    app.invokeLater(
-                        {
-                            callBack(this.getScripts())
-                        },
-                        ModalityState.any()
-                    )
-                } catch (e: Exception) {
-                    callBack(this.getScripts())
-                }
-            }
-        }
 
         private fun getScripts(): List<SampleScriptModel> = synchronized(repository) {
             if (Date().time - timestamp > 5 * 60 * 1000) {
@@ -709,6 +672,7 @@ class ConfigureBrowserComponent(
         private var luaDocument: Document? = null
         private var jsDocument: Document? = null
         private val mainPanel = JPanel(CardLayout())
+        private var language: String = ""
 
         init {
             setupUI()
@@ -718,14 +682,29 @@ class ConfigureBrowserComponent(
             return mainPanel
         }
 
-
         private fun setupUI() {
             val jsEditor = createJsEditor()
             jsPanel.addToCenter(jsEditor.component)
             val luaEditor = createLuaEditor()
             luaPanel.addToCenter(luaEditor.component)
             mainPanel.add("js", jsPanel)
-            mainPanel.add("lua", jsPanel)
+            mainPanel.add("lua", luaPanel)
+        }
+
+        fun getSource(): String {
+            when (language) {
+                "lua" -> {
+                    luaDocument?.let {
+                        return luaDocument!!.text
+                    }
+                }
+                "js" -> {
+                    jsDocument?.let {
+                        return jsDocument!!.text
+                    }
+                }
+            }
+            return ""
         }
 
         fun showSource(language: String, source: String) {
@@ -738,6 +717,7 @@ class ConfigureBrowserComponent(
                                 jsDocument!!.setText(source)
                                 jsDocument!!.setReadOnly(true)
                             }
+                            this.language = "js"
                             (mainPanel.layout as CardLayout).first(mainPanel)
                         }
                         "lua" -> {
@@ -746,6 +726,7 @@ class ConfigureBrowserComponent(
                                 luaDocument!!.setText(source)
                                 luaDocument!!.setReadOnly(true)
                             }
+                            this.language = "lua"
                             (mainPanel.layout as CardLayout).last(mainPanel)
                         }
                         else -> {
