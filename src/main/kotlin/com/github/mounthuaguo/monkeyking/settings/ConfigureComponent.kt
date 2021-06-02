@@ -148,7 +148,18 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 
         val copyAction: AnAction = object : DumbAwareAction(AllIcons.Actions.Copy) {
             override fun actionPerformed(e: AnActionEvent) {
-                println(e)
+                val index = scriptListView.selectedIndex
+                if (index < 0) return
+                val listModel = scriptListView.model as ScriptListModel
+                val model = listModel.getModel(index)
+                val scripts = listModel.scripts()
+                val m = mutableMapOf<String, Unit>()
+                for (s in scripts) {
+                    m[s.name] = Unit
+                }
+                val raw = model.copyRaw(m.toMap())
+                val script = ScriptModel(model.language, raw)
+                listModel.add(script)
             }
         }
 

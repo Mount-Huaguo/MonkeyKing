@@ -86,6 +86,27 @@ data class ScriptModel(val language: String = "lua", var raw: String = "", var e
         }
     }
 
+    fun copyRaw(names: Map<String, Unit>): String {
+        val lastSep = name.split(" ").last()
+        var baseName = name
+        var index = 0
+        var newName = ""
+        try {
+            index = lastSep.toInt()
+            baseName = baseName.removeSuffix(" $lastSep")
+        } catch (e: Exception) {
+        }
+        while (true) {
+            newName = "$baseName ${index++}"
+            if (!names.containsKey(newName)) {
+                break
+            }
+        }
+        val prefix = if (language == "lua") "--" else "//"
+        val regex = """(\s*)$prefix(\s*)@name(\s+)$name(\s*)"""
+        return raw.replace(Regex(regex), "$1$prefix$2@name$3$newName$4")
+    }
+
     fun genMenuId(menu: String): String {
         return "${namespace}.${name}.${menu}".replace(" ", "_")
     }
@@ -128,7 +149,7 @@ data class ScriptModel(val language: String = "lua", var raw: String = "", var e
         for (row in headers) {
             val value = parseRow(row, field)
             if (value != "") {
-                return value
+                return value.trim()
             }
         }
         return ""
