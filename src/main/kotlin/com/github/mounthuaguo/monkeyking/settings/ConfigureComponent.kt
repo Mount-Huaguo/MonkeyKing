@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -33,10 +34,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.luaj.vm2.lib.jse.JsePlatform
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
+import java.awt.*
 import java.net.URL
 import java.util.*
 import javax.swing.*
@@ -339,19 +337,23 @@ class ConfigureBrowserComponent(
     private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
 ) : BorderLayoutPanel() {
 
+    private val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
+
     private val leftPanel = BorderLayoutPanel()
     private val searchBar = PluginSearchTextField()
     private val listView = JBList<SampleScriptModel>()
-    private val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
+
     private var scriptList = listOf<SampleScriptModel>()
     private var scriptRepo = listOf<SampleScriptModel>()
-    private val luaEnv = JsePlatform.standardGlobals()
+
     private var scriptLoadingDecorator: LoadingDecorator? = null
     private var isLoad = false
     private val urlCache = URLCache()
-    private var rightPanel = ConfigureBrowserSecondPanel(myProject) { model, source ->
+    private var rightPanel = ConfigureBrowserSecondPanel(myProject, urlCache) { model, source ->
         useButtonOnClick(model, source)
     }
+
+    private val luaEnv = JsePlatform.standardGlobals()
 
     private val listViewModel = object : AbstractListModel<SampleScriptModel>() {
         override fun getSize(): Int {
@@ -369,6 +371,7 @@ class ConfigureBrowserComponent(
     }
 
     init {
+//        leftPanel.border = BorderFactory.createLineBorder(Color.gray, 1)
         splitter.firstComponent = leftPanel
         splitter.secondComponent = rightPanel.component()
     }
@@ -423,24 +426,7 @@ class ConfigureBrowserComponent(
     }
 
     private fun reloadSecondPanel(index: Int, sampleScriptModel: SampleScriptModel) {
-        rightPanel.startLoading()
-        if (sampleScriptModel.intro != "") {
-            urlCache.loadSource(getUri(sampleScriptModel.intro)) {
-                if (it == null) {
-                    with(rightPanel) { this.resetDescription("") }
-                    return@loadSource
-                }
-                with(rightPanel) { this.resetDescription(it.source) }
-            }
-        }
-
-        urlCache.loadSource(getUri(sampleScriptModel.source)) {
-            if (it == null) {
-                with(rightPanel) { this.resetDescription("") }
-                return@loadSource
-            }
-            with(rightPanel) { this.resetScript(it.source) }
-        }
+        rightPanel.resetWithModel(sampleScriptModel)
     }
 
     private fun reset() {
@@ -496,14 +482,13 @@ class ConfigureBrowserComponent(
 
     inner class ConfigureBrowserSecondPanel(
         private val myProject: Project,
+        private val urlCache: URLCache,
         private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
     ) {
 
         private val mainPanel = BorderLayoutPanel()
         private val spliterator = JBSplitter(true, 0.7f, 0.4f, 0.9f)
-
-        private var editor: Editor? = null;
-        private var editorPanel = BorderLayoutPanel()
+        private var editorPanel: ConfigureBrowserEditorPanel? = null
         private var descriptionPanel = JEditorPane()
         private var loadingDecorator: LoadingDecorator
         private var mySampleScriptModel: SampleScriptModel? = null;
@@ -531,9 +516,6 @@ class ConfigureBrowserComponent(
             val button = JButton("use")
             button.addActionListener {
                 mySampleScriptModel ?: return@addActionListener
-                editor?.let {
-                    useButtonOnClick(mySampleScriptModel!!, editor!!.document.text)
-                }
             }
             topPanel.add(button, BorderLayout.EAST)
             panel.add(
@@ -556,72 +538,34 @@ class ConfigureBrowserComponent(
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
                 )
             )
-
-            spliterator.firstComponent = editorPanel
+            editorPanel = ConfigureBrowserEditorPanel()
+            spliterator.firstComponent = editorPanel!!.getComponent()
             spliterator.secondComponent = panel
             mainPanel.add(spliterator, BorderLayout.CENTER)
 
-            resetEditor("unselected")
             viewWasLoaded = true
         }
 
-        private fun resetEditor(source: String) {
-            if (editor != null) {
-                EditorFactory.getInstance().releaseEditor(editor!!)
-            }
-            editor = createEditor(source)
-            editorPanel.removeAll()
-            editorPanel.add(editor!!.component, BorderLayout.CENTER)
-        }
-
-        fun startLoading() {
+        private fun startLoading() {
             loadingDecorator.startLoading(false)
         }
 
-        fun stopLoading() {
+        private fun stopLoading() {
             loadingDecorator.stopLoading()
         }
 
-        fun resetDescription(description: String) {
-            descriptionPanel.text = description
-        }
-
-        fun resetScript(source: String) {
-            // todo
-        }
-
-
-        fun reset(source: String, description: String, modelSample: SampleScriptModel) {
+        fun resetWithModel(model: SampleScriptModel) {
             setupUI()
-            println("reset: $source, $description")
-            resetEditor(source)
-            descriptionPanel.text = description
-            mySampleScriptModel = modelSample
-            repaint()
-        }
-
-        private fun createEditor(text: String): Editor {
-            val editorFactory = EditorFactory.getInstance()
-            val fileExtension: String = FileUtilRt.getExtension("script.${mySampleScriptModel?.language}")
-
-            val doc: Document = editorFactory.createDocument(text)
-            doc.setReadOnly(true)
-            val editor = editorFactory.createEditor(
-                doc,
-                myProject,
-                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
-                false,
-            )
-            val editorSettings = editor.settings
-            editorSettings.isVirtualSpace = false
-            editorSettings.isLineMarkerAreaShown = false
-            editorSettings.isIndentGuidesShown = false
-            editorSettings.isLineNumbersShown = false
-            editorSettings.isFoldingOutlineShown = false
-            editorSettings.additionalColumnsCount = 3
-            editorSettings.additionalLinesCount = 3
-            editorSettings.isCaretRowShown = false
-            return editor
+            startLoading()
+            urlCache.loadIntroAndSource(model.intro, model.source) { intro, source ->
+                intro?.let {
+                    descriptionPanel.text = intro.response
+                }
+                source?.let {
+                    editorPanel!!.showSource(model.language, source.response)
+                }
+                stopLoading()
+            }
         }
 
         fun component(): JComponent {
@@ -630,19 +574,18 @@ class ConfigureBrowserComponent(
 
         private fun repaint() {
             mainPanel.repaint()
-            editorPanel.repaint()
             descriptionPanel.repaint()
         }
     }
 
     class URLCache {
 
-        data class Source(val url: String, val source: String, val timestamp: Long)
+        data class Response(val url: String, val response: String, val timestamp: Long)
 
         private val repository = mutableListOf<SampleScriptModel>()
         private var timestamp = Date().time
 
-        private val cache = mutableMapOf<String, Source>()
+        private val cache = mutableMapOf<String, Response>()
 
         fun load(callBack: (List<SampleScriptModel>) -> Unit) {
             val scripts = this.getScripts()
@@ -678,6 +621,7 @@ class ConfigureBrowserComponent(
 
         private fun processSampleScriptRaw(source: String) {
             synchronized(repository) {
+                println("source $source")
                 val luaEnv = JsePlatform.standardGlobals()
                 val chuck = luaEnv.load(source)
                 val table = chuck.call().checktable()
@@ -699,7 +643,7 @@ class ConfigureBrowserComponent(
             }
         }
 
-        private fun getSource(uri: String): Source? {
+        private fun getSource(uri: String): Response? {
             synchronized(cache) {
                 if (cache.containsKey(uri)) {
                     val source = cache[uri]!!
@@ -713,33 +657,147 @@ class ConfigureBrowserComponent(
         }
 
 
-        fun loadSource(uri: String, callback: (Source?) -> Unit) {
-            var source = getSource(uri)
-            if (source != null) {
-                callback(source)
+        private fun url(pth: String): URL {
+            return URL(MonkeyBundle.message("repositoryBaseUrl") + "/" + pth)
+        }
+
+        fun loadIntroAndSource(introUrl: String, sourceUrl: String, callback: (Response?, Response?) -> Unit) {
+            var intro: Response? = null
+            var source: Response? = getSource(sourceUrl)
+            if (introUrl != "") {
+                intro = getSource(introUrl)
+            }
+            if (intro != null && source != null) {
+                callback(intro, source)
+                return
+            }
+            if (introUrl == "" && source != null) {
+                callback(null, source)
                 return
             }
             val app = ApplicationManager.getApplication()
             app.executeOnPooledThread {
                 try {
-                    val response = URL(uri).readText()
-                    this.processSampleScriptRaw(response)
-                    println("response: $response")
+                    if (introUrl != "" && intro == null) {
+                        intro = Response(introUrl, url(introUrl).readText(), Date().time)
+                        synchronized(cache) { cache[introUrl] = intro!! }
+                    }
+                    if (source == null) {
+                        source = Response(sourceUrl, url(sourceUrl).readText(), Date().time)
+                        synchronized(cache) { cache[sourceUrl] = source!! }
+                    }
                     app.invokeLater(
                         {
-                            source = Source(uri, response, Date().time)
-                            synchronized(callback) {
-                                cache[uri] = source!!
-                            }
-                            callback(source!!)
+                            callback(intro, source)
                         },
                         ModalityState.any()
                     )
+
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    callback(null)
+                    callback(null, null)
                 }
             }
         }
+
     }
+
+    inner class ConfigureBrowserEditorPanel() {
+
+        private val jsPanel = BorderLayoutPanel()
+        private val luaPanel = BorderLayoutPanel()
+        private var luaDocument: Document? = null
+        private var jsDocument: Document? = null
+        private val mainPanel = JPanel(CardLayout())
+
+        init {
+            setupUI()
+        }
+
+        fun getComponent(): JComponent {
+            return mainPanel
+        }
+
+
+        private fun setupUI() {
+            val jsEditor = createJsEditor()
+            jsPanel.addToCenter(jsEditor.component)
+            val luaEditor = createLuaEditor()
+            luaPanel.addToCenter(luaEditor.component)
+            mainPanel.add("js", jsPanel)
+            mainPanel.add("lua", jsPanel)
+        }
+
+        fun showSource(language: String, source: String) {
+            ApplicationManager.getApplication().invokeLater({
+                runWriteAction {
+                    when (language) {
+                        "js" -> {
+                            jsDocument?.let {
+                                jsDocument!!.setReadOnly(false)
+                                jsDocument!!.setText(source)
+                                jsDocument!!.setReadOnly(true)
+                            }
+                            (mainPanel.layout as CardLayout).first(mainPanel)
+                        }
+                        "lua" -> {
+                            luaDocument?.let {
+                                luaDocument!!.setReadOnly(false)
+                                luaDocument!!.setText(source)
+                                luaDocument!!.setReadOnly(true)
+                            }
+                            (mainPanel.layout as CardLayout).last(mainPanel)
+                        }
+                        else -> {
+                            // do nothing
+                        }
+                    }
+                }
+            }, ModalityState.any())
+        }
+
+        private fun createJsEditor(): Editor {
+            val editorFactory = EditorFactory.getInstance()
+            val fileExtension: String = FileUtilRt.getExtension("script.js")
+            jsDocument = editorFactory.createDocument("")
+            jsDocument!!.setReadOnly(true)
+            val editor = editorFactory.createEditor(
+                jsDocument!!,
+                myProject,
+                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+                false,
+            )
+            editorSettings(editor)
+            return editor
+        }
+
+        private fun createLuaEditor(): Editor {
+            val editorFactory = EditorFactory.getInstance()
+            val fileExtension: String = FileUtilRt.getExtension("script.lua")
+            luaDocument = editorFactory.createDocument("")
+            luaDocument!!.setReadOnly(true)
+            val editor = editorFactory.createEditor(
+                luaDocument!!,
+                myProject,
+                FileTypeManager.getInstance().getFileTypeByExtension(fileExtension),
+                false,
+            )
+            editorSettings(editor)
+            return editor
+        }
+
+        private fun editorSettings(editor: Editor) {
+            val editorSettings = editor.settings
+            editorSettings.isVirtualSpace = false
+            editorSettings.isLineMarkerAreaShown = false
+            editorSettings.isIndentGuidesShown = false
+            editorSettings.isLineNumbersShown = false
+            editorSettings.isFoldingOutlineShown = false
+            editorSettings.additionalColumnsCount = 3
+            editorSettings.additionalLinesCount = 3
+            editorSettings.isCaretRowShown = false
+        }
+
+    }
+
 }
