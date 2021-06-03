@@ -13,22 +13,23 @@ class InputModel(
     val type: String,
     val field: String,
     var options: Array<String>? = null,
+    var default: Any? = null,
 ) {
     private var valuedPanel: ValuedPanel? = null
 
     fun component(): JComponent {
         when (type) {
             "text" -> {
-                valuedPanel = TextFieldValuePanel()
+                valuedPanel = TextFieldValuePanel(default)
             }
             "radio" -> {
-                valuedPanel = RadioValuedPanel(options!!)
+                valuedPanel = RadioValuedPanel(options!!, default)
             }
             "checkbox" -> {
-                valuedPanel = CheckBoxValuedPanel(options!!)
+                valuedPanel = CheckBoxValuedPanel(options!!, default)
             }
             "dropdown" -> {
-                valuedPanel = DropdownValuedPanel(options!!)
+                valuedPanel = DropdownValuedPanel(options!!, default)
             }
             else -> {
                 return JPanel()
@@ -53,8 +54,14 @@ interface ValuedPanel {
     fun component(): JComponent
 }
 
-private class TextFieldValuePanel : ValuedPanel {
+private class TextFieldValuePanel(default: Any?) : ValuedPanel {
     private var field = JTextField()
+
+    init {
+        default?.let {
+            field.text = default.toString()
+        }
+    }
 
     override fun value(): Any {
         return field.text
@@ -65,7 +72,7 @@ private class TextFieldValuePanel : ValuedPanel {
     }
 }
 
-private class DropdownValuedPanel(options: Array<String>) : ValuedPanel {
+private class DropdownValuedPanel(options: Array<String>, default: Any?) : ValuedPanel {
 
     private val cmb: JComboBox<String> = ComboBox()
 
@@ -73,6 +80,7 @@ private class DropdownValuedPanel(options: Array<String>) : ValuedPanel {
         for (option in options) {
             cmb.addItem(option)
         }
+        cmb.selectedItem = default.toString()
     }
 
     override fun value(): Any {
@@ -85,7 +93,7 @@ private class DropdownValuedPanel(options: Array<String>) : ValuedPanel {
 
 }
 
-private class CheckBoxValuedPanel(val options: Array<String>) : ValuedPanel {
+private class CheckBoxValuedPanel(val options: Array<String>, val default: Any?) : ValuedPanel {
 
     val checkboxes = mutableListOf<JCheckBox>()
 
@@ -100,9 +108,23 @@ private class CheckBoxValuedPanel(val options: Array<String>) : ValuedPanel {
     }
 
     override fun component(): JComponent {
+        val d = mutableListOf<String>()
+        when (default) {
+            is Array<*> -> {
+                default.forEach {
+                    d.add(it as String)
+                }
+            }
+            else -> {
+                default?.let {
+                    d.add(default.toString())
+                }
+            }
+        }
+
         val panel = JPanel(FlowLayout(FlowLayout.LEFT))
         for (option in options) {
-            val box = JCheckBox(option)
+            val box = JCheckBox(option, d.contains(option))
             checkboxes.add(box)
             panel.add(box)
         }
@@ -111,7 +133,7 @@ private class CheckBoxValuedPanel(val options: Array<String>) : ValuedPanel {
 
 }
 
-private class RadioValuedPanel(val options: Array<String>) : ValuedPanel {
+private class RadioValuedPanel(val options: Array<String>, val default: Any?) : ValuedPanel {
 
     val group = ButtonGroup()
 
@@ -120,9 +142,17 @@ private class RadioValuedPanel(val options: Array<String>) : ValuedPanel {
     }
 
     override fun component(): JComponent {
+        var idx = 0
+        default?.let {
+            options.forEachIndexed { i, t ->
+                if (t == default.toString()) {
+                    idx = i
+                }
+            }
+        }
         val panel = JPanel(FlowLayout(FlowLayout.LEFT))
         options.forEachIndexed { index, s ->
-            val radio = JRadioButton(s, index == 0)
+            val radio = JRadioButton(s, index == idx)
             radio.actionCommand = s
             group.add(radio)
             panel.add(radio)

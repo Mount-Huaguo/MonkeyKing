@@ -29,16 +29,42 @@ class Dialog : TwoArgFunction() {
                 if (table["options"].istable()) {
                     val options = mutableListOf<String>()
                     val ot = table["options"].checktable()!!
-                    for (idx in 1 until ot.arrayLength+1) {
+                    for (idx in 1 until ot.arrayLength + 1) {
                         options.add(ot[idx].checkstring().toString())
                     }
                     oa = options.toTypedArray()
                 }
+                val default = table["default"]
+                var defaultValue: Any? = null
+                when {
+                    default.isnil() -> {
+                        // do nothing
+                    }
+                    default.isstring() -> {
+                        defaultValue = default.checkstring().tostring()
+                    }
+                    default.isint() -> {
+                        defaultValue = default.checkint()
+                    }
+                    default.islong() -> {
+                        defaultValue = default.checklong().toInt()
+                    }
+                    default.istable() -> {
+                        val ds = mutableListOf<String>()
+                        val ot = default.checktable()!!
+                        for (idx in 1 until ot.arrayLength + 1) {
+                            ds.add(ot[idx].checkstring().toString())
+                        }
+                        defaultValue = ds.toTypedArray()
+                    }
+                }
+                println("default value, $defaultValue")
                 arr.add(
                     InputModel(
                         type = table["type"].checkstring().toString(),
                         field = table["field"].checkstring().toString(),
                         options = oa,
+                        default = defaultValue
                     )
                 )
             }
