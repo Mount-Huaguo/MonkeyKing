@@ -552,6 +552,7 @@ class ConfigureBrowserComponent(
         fun resetWithModel(model: SampleScriptModel) {
             setupUI()
             startLoading()
+            mySampleScriptModel = model
             urlCache.loadIntroAndSource(model.intro, model.source) { intro, source ->
                 intro?.let {
                     descriptionPanel.text = intro.response

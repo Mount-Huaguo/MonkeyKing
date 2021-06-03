@@ -29,7 +29,7 @@ class Dialog : TwoArgFunction() {
                 if (table["options"].istable()) {
                     val options = mutableListOf<String>()
                     val ot = table["options"].checktable()!!
-                    for (idx in 1 until ot.arrayLength) {
+                    for (idx in 1 until ot.arrayLength+1) {
                         options.add(ot[idx].checkstring().toString())
                     }
                     oa = options.toTypedArray()

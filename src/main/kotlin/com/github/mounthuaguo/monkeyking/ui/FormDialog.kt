@@ -16,8 +16,6 @@ class InputModel(
 ) {
     private var valuedPanel: ValuedPanel? = null
 
-    constructor(field: String) : this("text", field) {}
-
     fun component(): JComponent {
         when (type) {
             "text" -> {
@@ -98,7 +96,7 @@ private class CheckBoxValuedPanel(val options: Array<String>) : ValuedPanel {
                 l.add(options[index])
             }
         }
-        return l
+        return l.toTypedArray()
     }
 
     override fun component(): JComponent {
@@ -136,13 +134,14 @@ private class RadioValuedPanel(val options: Array<String>) : ValuedPanel {
 
 class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
 
+    private var focusComponent: JComponent? = null
+
     init {
         init()
     }
 
     override fun createCenterPanel(): JComponent {
         val panel = JPanel(GridBagLayout())
-
         inputs.forEachIndexed { idx, item ->
             val label = JLabel(item.field)
             panel.add(
@@ -158,8 +157,15 @@ class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsLeft(10), 0, 0
                 )
             )
+            if (focusComponent == null && (valuePanel is JTextField)) {
+                focusComponent = valuePanel
+            }
         }
         return panel
+    }
+
+    override fun getPreferredFocusedComponent(): JComponent? {
+        return focusComponent
     }
 
     fun values(): Map<String, Any> {
