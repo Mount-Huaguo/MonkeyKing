@@ -101,9 +101,10 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             if (it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
-            editorPanel.setScriptModel(
-                scriptListModel.getModel(scriptListView.selectedIndex)
-            )
+            val model = scriptListModel.getModel(scriptListView.selectedIndex)
+            model?.let {
+                editorPanel.setScriptModel(model)
+            }
         }
 
     }
@@ -157,9 +158,11 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
                 for (s in scripts) {
                     m[s.name] = Unit
                 }
-                val raw = model.copyRaw(m.toMap())
-                val script = ScriptModel(model.language, raw)
-                listModel.add(script)
+                model?.let {
+                    val raw = model.copyRaw(m.toMap())
+                    val script = ScriptModel(model.language, raw)
+                    listModel.add(script)
+                }
             }
         }
 
@@ -168,7 +171,14 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
                 if (scriptListView.selectedIndex < 0) {
                     return
                 }
-                (scriptListView.model as ScriptListModel).remove(scriptListView.selectedIndex)
+                val model = scriptListView.model as ScriptListModel
+                val currentIndex = scriptListView.selectedIndex
+                model.remove(currentIndex)
+                scriptListView.selectedIndex = if (model.size > 1 && currentIndex - 1 < 0) {
+                    0
+                } else {
+                    currentIndex - 1
+                }
             }
         }
 
@@ -192,6 +202,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             m[s.name] = Unit
         }
         state.setScripts(scripts)
+        println("saveScripts $scripts")
     }
 
     fun addScript(model: SampleScriptModel, source: String) {

@@ -45,7 +45,7 @@ const val jsScriptModelTemplate = """// @start
 
 """
 
-data class ScriptModel(val language: String = "lua", var raw: String = "", var enabled: Boolean = true) {
+data class ScriptModel(var language: String = "lua", var raw: String = "", var enabled: Boolean = true) {
 
     var namespace: String = ""
     var version: String = ""
@@ -78,6 +78,9 @@ data class ScriptModel(val language: String = "lua", var raw: String = "", var e
                 less than 256 characters,<br/>
                 support alpha,digit,dash,whitespace,underscore.<br/>
             """.trimIndent()
+        }
+        if (language == "js" && requires != null && requires.size > 0) {
+            return "Javascript not support require."
         }
         return if (language == "lua") {
             LuaValidator(raw).validate()
@@ -196,13 +199,13 @@ class ConfigureState {
                 continue
             }
             if (s.validate() != "") {
+                println("script ${s.name} is invalid and ignored")
                 continue
             }
             list.add(s)
         }
         scripts = list.toList()
     }
-
 
 }
 

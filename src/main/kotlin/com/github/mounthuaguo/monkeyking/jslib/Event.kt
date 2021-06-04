@@ -3,11 +3,10 @@ package com.github.mounthuaguo.monkeyking.jslib
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.SelectionModel
 
-class Event(event: AnActionEvent) {
+class Event(val event: AnActionEvent) {
 
     var editor = event.getRequiredData(CommonDataKeys.EDITOR)
 
@@ -58,21 +57,21 @@ class Event(event: AnActionEvent) {
         }
 
         fun replaceString(start: Int, end: Int, text: String) {
-            ApplicationManager.getApplication().invokeLater({
-                runWriteAction {
+            CommandProcessor.getInstance().executeCommand(event.project, {
+                ApplicationManager.getApplication().runWriteAction {
                     editor.document.replaceString(start, end, text)
                     editor.caretModel.moveToOffset(start + end)
                 }
-            }, ModalityState.any())
+            }, "mk.event.document.replaceString", null)
         }
 
         fun insertString(position: Int, text: String) {
-            ApplicationManager.getApplication().invokeLater({
-                runWriteAction {
+            CommandProcessor.getInstance().executeCommand(event.project, {
+                ApplicationManager.getApplication().runWriteAction {
                     editor.document.insertString(position, text)
                     editor.caretModel.moveToOffset(position + text.length)
                 }
-            }, ModalityState.any())
+            }, "mk.event.document.insertString", null)
         }
     }
 

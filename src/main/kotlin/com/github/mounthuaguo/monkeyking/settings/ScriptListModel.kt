@@ -16,7 +16,10 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
         return box
     }
 
-    fun getModel(index: Int): ScriptModel {
+    fun getModel(index: Int): ScriptModel? {
+        if (index < 0) {
+            return null
+        }
         return myScriptModels[index]
     }
 
