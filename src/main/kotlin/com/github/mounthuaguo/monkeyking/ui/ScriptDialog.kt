@@ -31,7 +31,7 @@ import javax.swing.JPanel
 
 
 private const val luaBaseTemplate = """--
--- todo
+-- You know what to do, Enjoy!
 -- 
 
 -- insert code here
@@ -41,7 +41,7 @@ return source
 """
 
 private const val jsBaseTemplate = """//
-// todo
+// You know what to do, Enjoy!
 //  
 
 (function() {

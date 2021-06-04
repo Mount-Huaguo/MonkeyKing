@@ -1,6 +1,7 @@
 package com.github.mounthuaguo.monkeyking.services
 
 import com.github.mounthuaguo.monkeyking.MonkeyBundle
+import com.github.mounthuaguo.monkeyking.jslib.Engine
 import com.github.mounthuaguo.monkeyking.lualib.IdeaPlatform
 import com.github.mounthuaguo.monkeyking.settings.ScriptCacheService
 import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
@@ -24,7 +25,6 @@ import org.luaj.vm2.LuaTable
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Window
-import javax.script.ScriptEngineManager
 
 
 class ApplicationService : Disposable {
@@ -279,19 +279,15 @@ class JsScriptAction(
     private val e: AnActionEvent
 ) {
     private fun showError(msg: String) {
-        e.project ?: return
-        ToolWindowUtil(e.project!!, script.name).log(msg)
+        e.project?.let {
+            ToolWindowUtil(e.project!!, script.name).log(msg)
+        }
     }
 
     fun run() {
-        val factory = ScriptEngineManager()
-        val engine = factory.getEngineByName("nashorn")
         try {
-            engine.put("menu", menu)
-            engine.put("event", e)
-            engine.eval(script.raw)
+            Engine(script.name, menu, e).getEngine().eval(script.raw)
         } catch (se: Exception) {
-            se.printStackTrace()
             showError(e.toString())
         }
     }

@@ -20,7 +20,7 @@ class Event(
 
     override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
         val event = LuaTable(0, 10)
-        event["selection"] = Selection().value()
+        event["selectionModel"] = Selection().value()
         event["document"] = DocumentWrap().value()
         arg2["event"] = event
         arg2["package"]["loaded"]["event"] = event
@@ -37,8 +37,8 @@ class Event(
             selectionModel.selectedText?.let {
                 t["selectedText"] = valueOf(it)
             }
-            t["start"] = selectionModel.selectionStart
-            t["end"] = selectionModel.selectionEnd
+            t["selectionStart"] = selectionModel.selectionStart
+            t["selectionEnd"] = selectionModel.selectionEnd
             t["hasSelection"] = valueOf(selectionModel.hasSelection())
             // todo other properties and methods
             return t
@@ -54,8 +54,8 @@ class Event(
             t["text"] = document.text
             t["textLength"] = document.textLength
             t["lineCount"] = document.lineCount
-            t["replace"] = Replace(document, editor)
-            t["insert"] = Insert(document)
+            t["replaceString"] = Replace(document, editor)
+            t["insertString"] = Insert(document, editor)
             // todo other properties and methods
             return t
         }
@@ -81,15 +81,16 @@ class Event(
             }
         }
 
-        inner class Insert(private val doc: Document) : TwoArgFunction() {
+        inner class Insert(private val doc: Document, private val editor: Editor) : TwoArgFunction() {
             override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
                 project ?: return valueOf(false);
                 return try {
-                    val index = arg1.checkint()
+                    val position = arg1.checkint()
                     val replace = arg2.checkstring().toString()
                     CommandProcessor.getInstance().executeCommand(project, {
                         ApplicationManager.getApplication().runWriteAction {
-                            doc.insertString(index, replace)
+                            doc.insertString(position, replace)
+                            editor.caretModel.moveToOffset(position + replace.length)
                         }
                     }, "mk.event.document.insertString", null)
                     valueOf(true)
