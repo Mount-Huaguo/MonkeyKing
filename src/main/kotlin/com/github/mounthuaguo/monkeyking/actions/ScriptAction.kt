@@ -21,6 +21,7 @@ import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard
 import java.awt.datatransfer.StringSelection
+import javax.script.ScriptEngineManager
 
 
 class ScriptActionWrap(
@@ -101,10 +102,9 @@ class ScriptActionWrap(
         if (language == "lua") {
             execLua(source, script, requires, callBack)
         } else {
-            execJs(source, script, requires, callBack)
+            execJs(source, script, callBack)
         }
     }
-
 
     private fun execLua(source: String, script: String, requires: List<String>?, callback: (String) -> Unit) {
         try {
@@ -143,10 +143,15 @@ class ScriptActionWrap(
         }
     }
 
-    private fun execJs(source: String, script: String, requires: List<String>?, callBack: (String) -> Unit) {
+    private fun execJs(source: String, script: String, callBack: (String) -> Unit) {
         try {
-            // todo
-        } catch (e: Exception) {
+            val factory = ScriptEngineManager()
+            val engine = factory.getEngineByName("nashorn")
+            engine.put("source", source)
+            val r = engine.eval(script)
+            callBack(r.toString())
+        } catch (se: Exception) {
+            callBack(se.toString())
         }
     }
 

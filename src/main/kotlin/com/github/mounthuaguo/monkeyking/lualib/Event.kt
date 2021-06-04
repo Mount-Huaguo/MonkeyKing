@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.SelectionModel
 import com.intellij.openapi.project.Project
 import org.luaj.vm2.LuaTable
@@ -53,13 +54,13 @@ class Event(
             t["text"] = document.text
             t["textLength"] = document.textLength
             t["lineCount"] = document.lineCount
-            t["replace"] = Replace(document)
+            t["replace"] = Replace(document, editor)
             t["insert"] = Insert(document)
             // todo other properties and methods
             return t
         }
 
-        inner class Replace(private val doc: Document) : ThreeArgFunction() {
+        inner class Replace(private val doc: Document, private val editor: Editor) : ThreeArgFunction() {
             override fun call(arg1: LuaValue, arg2: LuaValue, arg3: LuaValue): LuaValue {
                 project ?: return valueOf(false);
                 return try {
@@ -69,6 +70,7 @@ class Event(
                     CommandProcessor.getInstance().executeCommand(project, {
                         ApplicationManager.getApplication().runWriteAction {
                             doc.replaceString(start, end, replace)
+                            editor.caretModel.moveToOffset(start + end)
                         }
                     }, "mk.event.document.replaceString", null)
                     valueOf(true)

@@ -24,6 +24,7 @@ import org.luaj.vm2.LuaTable
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Window
+import javax.script.ScriptEngineManager
 
 
 class ApplicationService : Disposable {
@@ -184,7 +185,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
         try {
             when (script.language) {
                 ScriptLanguage.Lua.value -> {
-                    LuaScriptAction(e.project, script, menu, e).run()
+                    LuaScriptAction(script, menu, e).run()
                 }
                 ScriptLanguage.Js.value -> {
                     JsScriptAction(script, menu, e).run()
@@ -204,15 +205,14 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
 
 
 class LuaScriptAction(
-    private val project: Project?,
     private val script: ScriptModel,
     private val menu: String,
     private val e: AnActionEvent
 ) {
 
     private fun showError(msg: String) {
-        project ?: return
-        ToolWindowUtil(project, script.name).log(msg)
+        e.project ?: return
+        ToolWindowUtil(e.project!!, script.name).log(msg)
     }
 
     fun run() {
@@ -273,10 +273,26 @@ class LuaScriptAction(
 }
 
 
-class JsScriptAction(script: ScriptModel, menu: String, e: AnActionEvent) {
+class JsScriptAction(
+    private val script: ScriptModel,
+    private val menu: String,
+    private val e: AnActionEvent
+) {
+    private fun showError(msg: String) {
+        e.project ?: return
+        ToolWindowUtil(e.project!!, script.name).log(msg)
+    }
 
-    // todo
     fun run() {
-
+        val factory = ScriptEngineManager()
+        val engine = factory.getEngineByName("nashorn")
+        try {
+            engine.put("menu", menu)
+            engine.put("event", e)
+            engine.eval(script.raw)
+        } catch (se: Exception) {
+            se.printStackTrace()
+            showError(e.toString())
+        }
     }
 }
