@@ -4,6 +4,8 @@ import com.github.mounthuaguo.monkeyking.MonkeyBundle
 import com.github.mounthuaguo.monkeyking.settings.ConfigureStateService
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -15,6 +17,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.components.JBLabel
+import com.intellij.util.AlarmFactory
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.annotations.Nullable
 import java.awt.BorderLayout
@@ -59,12 +62,10 @@ class ScriptDialogWrapper(
     private var targetEditor: Editor? = null
     private var scriptEditor: Editor? = null
     private var panel: JPanel = BorderLayoutPanel()
-
     private var targetDocument: Document? = null
-
     private var templates: List<ScriptModel>? = null
-
-    private var selectedScipt: ScriptModel? = null
+    private var selectedScript: ScriptModel? = null
+    private val alarm = AlarmFactory.getInstance().create()
 
     init {
         init()
@@ -98,16 +99,26 @@ class ScriptDialogWrapper(
     }
 
     private fun sourceTextHasChanged(txt: String) {
-        callback("source", txt, selectedScipt?.requires)
+        alarm.cancelAllRequests()
+        alarm.addRequest({
+            callback("source", txt, selectedScript?.requires)
+        }, 300)
     }
 
     private fun scriptTextHasChanged(txt: String) {
-        callback("script", txt, selectedScipt?.requires)
+        alarm.cancelAllRequests()
+        alarm.addRequest({
+            callback("script", txt, selectedScript?.requires)
+        }, 300)
     }
 
     fun setTargetDocument(txt: String) {
         targetDocument ?: return
-        targetDocument!!.setText(txt)
+        ApplicationManager.getApplication().invokeLater({
+            runWriteAction {
+                targetDocument!!.setText(txt)
+            }
+        }, ModalityState.any())
     }
 
     private fun wrapEditor(editorName: String, editor: Editor): JPanel {
@@ -142,7 +153,7 @@ class ScriptDialogWrapper(
     private fun selectTemplate(name: String) {
         getTemplate().forEachIndexed { i, t ->
             if ("$i. ${t.name}" == name) {
-                selectedScipt = t
+                selectedScript = t
                 ApplicationManager.getApplication().runWriteAction {
                     scriptEditor?.document?.setText(t.raw)
                 }
@@ -169,8 +180,6 @@ class ScriptDialogWrapper(
 
     @Nullable
     override fun createCenterPanel(): JComponent {
-        println("createCenterPanel")
-
         val template = if (language == "js") {
             jsBaseTemplate
         } else {
@@ -222,10 +231,10 @@ class ScriptDialogWrapper(
             }
         }
 
-        val copy = object : DialogWrapperAction("Copy to Clipboard") {
+        val copy = object : DialogWrapperAction("Copy") {
             override fun doAction(e: ActionEvent?) {
                 targetEditor ?: return
-                callback("copy", targetEditor!!.document.text, selectedScipt?.requires)
+                callback("copy", targetEditor!!.document.text, selectedScript?.requires)
                 close(1)
             }
         }
@@ -233,7 +242,7 @@ class ScriptDialogWrapper(
         val replace = object : DialogWrapperAction("Replace") {
             override fun doAction(e: ActionEvent?) {
                 targetEditor ?: return
-                callback("replace", targetEditor!!.document.text, selectedScipt?.requires)
+                callback("replace", targetEditor!!.document.text, selectedScript?.requires)
                 close(1)
             }
         }
