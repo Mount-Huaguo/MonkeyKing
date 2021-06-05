@@ -4,37 +4,187 @@
 [![Version](https://img.shields.io/jetbrains/plugin/v/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 
-## Template ToDo list
-- [x] Create a new [IntelliJ Platform Plugin Template][template] project.
-- [ ] Verify the [pluginGroup](/gradle.properties), [plugin ID](/src/main/resources/META-INF/plugin.xml) and [sources package](/src/main/kotlin).
-- [ ] Review the [Legal Agreements](https://plugins.jetbrains.com/docs/marketplace/legal-agreements.html).
-- [ ] [Publish a plugin manually](https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html?from=IJPluginTemplate) for the first time.
-- [ ] Set the Plugin ID in the above README badges.
-- [ ] Set the [Deployment Token](https://plugins.jetbrains.com/docs/marketplace/plugin-upload.html).
-- [ ] Click the <kbd>Watch</kbd> button on the top of the [IntelliJ Platform Plugin Template][template] to be notified about releases containing new features and fixes.
+## 1. Intro [中文简介](README_ZH.md)
 
-<!-- Plugin description -->
-This Fancy IntelliJ Platform Plugin is going to be your implementation of the brilliant ideas that you have.
+Quickly implement some tiny Intellij Idea scripts by `Javascript` or `Lua` to process text.
 
-This specific section is a source for the [plugin.xml](/src/main/resources/META-INF/plugin.xml) file which will be extracted by the [Gradle](/build.gradle.kts) during the build process.
+Sometimes we want to inject some tiny script to process text, e.g. Base64 encode or decode, AES or RSA encrypt etc. Or
+auto generate some text e.g. some random characters, code template. This Idea plugin help to do this.
 
-To keep everything working, do not remove `<!-- ... -->` sections. 
-<!-- Plugin description end -->
+## 2. Install
 
-## Installation
+### 2.1 By Intellij Idea Plugin Marketing
 
-- Using IDE built-in plugin system:
-  
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>Marketplace</kbd> > <kbd>Search for "MonkeyKing"</kbd> >
-  <kbd>Install Plugin</kbd>
-  
-- Manually:
+In Idea Plugin Marketing page, search MonkeyKing and then click install.
 
-  Download the [latest release](https://github.com/Mount-Huaguo/MonkeyKing/releases/latest) and install it manually using
-  <kbd>Settings/Preferences</kbd> > <kbd>Plugins</kbd> > <kbd>⚙️</kbd> > <kbd>Install plugin from disk...</kbd>
+### 2.2 By Zip
+
+Download zip from release page, and open Idea Plugin Manager page. Click *Install Plugin from Disk...*, choose the
+download zip.
+
+## 3. Usage
+
+### 3.1 Add a new script
+
+* Click add button at setting page and choose a language
+
+![Add a new script](doc/images/add_script.jpg)
+
+* Use browser
+
+TODO
+
+### 3.2 Specification
+
+#### 3.2.1 Define a Header
+
+1. Header was wrapped by `start` and `end`
+
+```lua
+-- @start
+-- @version     0.1
+-- @namespace   com.github.mounthuaguo.mk
+-- @name        脚本名
+-- @type        action or template
+-- @menu        右键菜单名
+-- @require     https://raw.githubusercontent.com/rxi/json.lua/master/json.lua
+-- @一些其他的字段，随便添加。
+-- @end
+
+```
+
+2. Header fields
+
+* `version` required.
+
+* `namespace` required.
+
+* `name` required.
+
+* `type` required, Only support `action` and `template` by now. `action` will display in right click menu, `template` is
+  predefined template to quick process text.
+
+* `menu` the name in right click menu. Only enable if type is action.
+
+* `require` only support `Lua`, and not support `Javascript` .
+
+* Other fields, `homepage`，`link`, `description` and what every you want to add.
+
+3. Predefined variant and methods
+
+* `menu` the name displayed in right click menu
+* `action` a sample wrap of AnActionEvent 
+
+```lua
+
+action.selectionModel.selectedText -- the selected text
+action.selectionModel.selectionStart -- the selection start
+action.selectionModel.selectionEnd -- the selection end
+action.selectionModel.hasSelection -- 
+
+action.document.text -- the text of the document
+action.document.textLength -- document length
+action.document.lineCount -- document line count
+action.document.replaceString(startPosition, endPosition, replace) -- replace a string
+action.document.insertString(endPosition, text) -- insert a string
+
+```
+
+* `dialog` show a dialog
+
+```lua
+
+local result = dialog.show({
+    type = 'text', -- text field
+    field = '用户名', -- name to display
+    default = '10', -- default value, string type
+}, {
+    type = 'radio', -- radio
+    field = '性别', -- name to display
+    default = '未知', -- default value, string type
+    options = { '男', '女', '未知' } -- options
+}, {
+    type = 'checkbox', -- radio
+    field = '技能', -- name to display
+    default = { 'Lua', 'Java' }, -- default value, string array type
+    options = { 'Lua', 'Java', 'Golang' } -- options
+}, {
+    type = 'dropdown', -- dropdown
+    field = '工作年限', -- name to display
+    default = '0-5年', -- default value, string type
+    options = { '0-5年', '5-10年', '10年以上' } -- options
+})
+
+if result.success then
+    -- result.success is true if user click OK button
+
+    print(result.data['用户名']) -- the text field value
+    print(result.data['性别']) -- the radio field value
+    print(result.data['技能']) -- the checkbox field value
+    print(result.data['工作年限']) -- the dropdown field value
+
+end
+
+```
+
+![Dialog](doc/images/dialog_demo.png)
+
+* `toast` a wrap of notice
+
+```lua
+toast.info('show info message')
+toast.error('show error message')
+toast.warn('show warning message')
+```
+
+![Toast](doc/images/toast_demo.png)
+
+* `log` a wrap of tool window
+
+```lua
+log.info('output info message')
+log.error('output error message')
+log.warn('output warning message')
+```
+
+![Log Demo](doc/images/log_demo.png)
+
+* `require` help to handle the requirement value.
+
+```lua
+-- @start
+-- ...
+-- @require   https://raw.githubusercontent.com/rxi/json.lua/master/json.lua
+-- ...
+-- @end
+
+require.a.decode('{}')
+-- or
+require['a'].decode('{}')
+-- a is first require，b is the second，and so on.
+
+```
+
+### 3.3 Use script
+
+* In right click menu
+
+![Use Script](doc/images/use1.jpg)
+
+* In search panel
+
+![Use Script](doc/images/use_script1.gif)
+
+### 4. Q&A
+
+#### 4.1 Why called MonkeyKing？
+
+We can quickly implement a sample script in internet browser by [Tampermonkey](https://www.tampermonkey.net) plugin. The inspiration for developing this plug-in came from it, so a similar name was given. MonkeyKing is also a character in Chinese mythology.
+
+#### 4.2 Will other language support be added later?
+
+Currently the plug-ins only support plug-ins written by `Javascript` and `Lua`. As for whether other languages will be added, it has not yet been determined. If the demand is large, you can consider adding them.
 
 
----
-Plugin based on the [IntelliJ Platform Plugin Template][template].
-
-[template]: https://github.com/JetBrains/intellij-platform-plugin-template
+#### 4.3 How to publish a script written by yourself?
+All scripts are in [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts), you can fork this repository and submit PR.
