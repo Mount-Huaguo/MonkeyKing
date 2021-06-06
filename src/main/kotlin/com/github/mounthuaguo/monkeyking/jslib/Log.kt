@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.jslib
 
-import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
+import com.github.mounthuaguo.monkeyking.ui.MyToolWindowManager
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 
@@ -11,7 +11,7 @@ class Log(
 
     private fun log(msg: String, typ: ConsoleViewContentType) {
         project ?: return
-        ToolWindowUtil(project, scriptName, typ).log(msg)
+        MyToolWindowManager.getInstance().print(project, scriptName, msg, typ)
     }
 
     fun info(message: String) {

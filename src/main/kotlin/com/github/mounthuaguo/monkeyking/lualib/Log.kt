@@ -1,6 +1,6 @@
 package com.github.mounthuaguo.monkeyking.lualib
 
-import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
+import com.github.mounthuaguo.monkeyking.ui.MyToolWindowManager
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 import org.luaj.vm2.LuaTable
@@ -26,13 +26,11 @@ class Log(
     inner class LogInfo(private val contentType: ConsoleViewContentType) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             return try {
-                ToolWindowUtil(project!!, scriptName, contentType).log(arg.checkstring().toString())
+                MyToolWindowManager.getInstance().print(project, scriptName, arg.toString() + "\n", contentType)
                 valueOf(true)
             } catch (e: Exception) {
                 valueOf(false)
             }
         }
     }
-
-
 }

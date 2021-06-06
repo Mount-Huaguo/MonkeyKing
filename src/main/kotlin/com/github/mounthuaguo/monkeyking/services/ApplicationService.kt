@@ -6,7 +6,7 @@ import com.github.mounthuaguo.monkeyking.lualib.IdeaPlatform
 import com.github.mounthuaguo.monkeyking.settings.ScriptCacheService
 import com.github.mounthuaguo.monkeyking.settings.ScriptLanguage
 import com.github.mounthuaguo.monkeyking.settings.ScriptModel
-import com.github.mounthuaguo.monkeyking.ui.ToolWindowUtil
+import com.github.mounthuaguo.monkeyking.ui.MyToolWindowManager
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
@@ -196,9 +196,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
             }
         } catch (exception: Exception) {
             exception.printStackTrace()
-            // todo notice
-            e.project ?: return
-            ToolWindowUtil(e.project!!, script.name).log(e.toString())
+            MyToolWindowManager.getInstance().print(e.project, script.name, e.toString())
         }
     }
 }
@@ -212,7 +210,7 @@ class LuaScriptAction(
 
     private fun showError(msg: String) {
         e.project ?: return
-        ToolWindowUtil(e.project!!, script.name).log(msg)
+        MyToolWindowManager.getInstance().print(e.project, script.name, msg)
     }
 
     fun run() {
@@ -279,9 +277,7 @@ class JsScriptAction(
     private val e: AnActionEvent
 ) {
     private fun showError(msg: String) {
-        e.project?.let {
-            ToolWindowUtil(e.project!!, script.name).log(msg)
-        }
+        MyToolWindowManager.getInstance().print(e.project, script.name, msg)
     }
 
     fun run() {

@@ -2,27 +2,63 @@ package com.github.mounthuaguo.monkeyking.ui
 
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.services.ServiceViewToolWindowFactory
+import com.intellij.execution.ui.ConsoleView
 import com.intellij.execution.ui.ConsoleViewContentType
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.ui.content.Content
 
 
-class ToolWindowUtil(
-    private val project: Project,
-    private val tab: String,
-    private val contentType: ConsoleViewContentType = ConsoleViewContentType.NORMAL_OUTPUT
-) {
-    fun log(str: String) {
+class MyToolWindowManager() {
+
+    inner class Item(val console: ConsoleView, val content: Content)
+
+    private val contentViews = mutableMapOf<String, Item>()
+
+    companion object {
+        @JvmStatic
+        private var instance: MyToolWindowManager? = null
+            get() {
+                if (field == null) {
+                    field = MyToolWindowManager()
+                }
+                return field
+            }
+
+        @JvmName("MyToolWindowManager_getInstance")
+        @JvmStatic
+        @Synchronized
+        fun getInstance(): MyToolWindowManager {
+            return requireNotNull(instance)
+        }
+    }
+
+    fun print(
+        project: Project?,
+        tabName: String,
+        msg: String,
+        type: ConsoleViewContentType = ConsoleViewContentType.NORMAL_OUTPUT
+    ) {
+        project ?: return
         val toolWindow: ToolWindow =
             ToolWindowManager.getInstance(project).getToolWindow("Monkey King") ?: return
-        val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
-        val content = toolWindow.contentManager.factory.createContent(consoleView.component, tab, false)
-        content.isCloseable = true
-        toolWindow.contentManager.addContent(content)
-        toolWindow.contentManager.setSelectedContent(content)
-        consoleView.print(str, contentType)
-        toolWindow.show()
+        synchronized(this) {
+            try {
+                println(contentViews)
+                val item = contentViews[tabName]!!
+                item.console.print(msg, type)
+                toolWindow.contentManager.setSelectedContent(item.content)
+            } catch (e: Exception) {
+                val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
+                val content = toolWindow.contentManager.factory.createContent(consoleView.component, tabName, false)
+                content.isCloseable = true
+                toolWindow.contentManager.addContent(content)
+                toolWindow.contentManager.setSelectedContent(content)
+                consoleView.print(msg, type)
+                contentViews[tabName] = Item(consoleView, content)
+            }
+        }
     }
 }
 
