@@ -25,11 +25,10 @@ class Dialog : TwoArgFunction() {
             for (i in 1 until num + 1) {
                 val table = args.checktable(i)!!
                 var oa: Array<String>? = null
-                println("options ${table["options"]}, ${table["options"].istable()}")
                 if (table["options"].istable()) {
                     val options = mutableListOf<String>()
                     val ot = table["options"].checktable()!!
-                    for (idx in 1 until ot.arrayLength + 1) {
+                    for (idx in 1 until ot.arrayLength) {
                         options.add(ot[idx].checkstring().toString())
                     }
                     oa = options.toTypedArray()
