@@ -20,6 +20,7 @@ class IdeaPlatform(
         global.load(Dialog())
         global.load(Toast(project))
         global.load(Log(scriptName, project))
+        global.load(Clipboard())
         global["print"] = Print()
 
         project?.let {

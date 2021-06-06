@@ -72,14 +72,14 @@ TODO
 ```lua
 
 -- in lua
-event.selectionModel.selectedText -- 选择的文本
-event.selectionModel.selectionStart -- 选择的文本的开始位置
-event.selectionModel.selectionEnd -- 选择的文本的末尾位置
-event.selectionModel.hasSelection -- 是否有选择的文本
+local selectedText = event.selectionModel.selectedText -- 选择的文本
+local selectionStart = event.selectionModel.selectionStart -- 选择的文本的开始位置
+local selectionEnd = event.selectionModel.selectionEnd -- 选择的文本的末尾位置
+local hasSelection = event.selectionModel.hasSelection -- 是否有选择的文本
 
-event.document.text -- 当前文件的文本
-event.document.textLength -- 当前文件的文本长度
-event.document.lineCount -- 当前文件的文本行数
+local text = event.document.text -- 当前文件的文本
+local textLength = event.document.textLength -- 当前文件的文本长度
+local lineCount = event.document.lineCount -- 当前文件的文本行数
 event.document.replaceString(startPosition, endPosition, replace) -- 替换文本
 event.document.insertString(endPosition, text) -- 插入文本
 
@@ -170,6 +170,17 @@ require.a.decode('{}')
 -- or
 require['a'].decode('{}')
 -- a标识第一个require，b标识第二个变量，以此类推
+
+```
+
+* `clipboard` 操作系统剪切板
+
+```lua
+-- 复制内容到剪切板
+clipboard.setContents('需要复制的内容')
+
+-- 从剪切板中获取内容
+local c = clipboard.getContents()
 
 ```
 

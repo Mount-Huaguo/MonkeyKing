@@ -25,6 +25,7 @@ class Engine(
         engine.put("log", Log(scriptName, event.project))
         engine.put("event", Event(event))
         engine.put("dialog", Dialog())
+        engine.put("clipboard", Clipboard())
         engine.put("print", PrintFunc())
         return engine
     }

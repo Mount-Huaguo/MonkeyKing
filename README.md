@@ -80,14 +80,14 @@ TODO
 ```lua
 
 -- in lua script
-event.selectionModel.selectedText -- the selected text
-event.selectionModel.selectionStart -- the selection start
-event.selectionModel.selectionEnd -- the selection end
-event.selectionModel.hasSelection -- 
+local selectedText = event.selectionModel.selectedText -- the selected text
+local selectionStart = event.selectionModel.selectionStart -- the selection start
+local selectionEnd = event.selectionModel.selectionEnd -- the selection end
+local hasSelection = event.selectionModel.hasSelection -- 
 
-event.document.text -- the text of the document
-event.document.textLength -- document length
-event.document.lineCount -- document line count
+local text = event.document.text -- the text of the document
+local textLength = event.document.textLength -- document length
+local lineCount = event.document.lineCount -- document line count
 event.document.replaceString(startPosition, endPosition, replace) -- replace a string
 event.document.insertString(endPosition, text) -- insert a string
 
@@ -177,6 +177,17 @@ require.a.decode('{}')
 -- or
 require['a'].decode('{}')
 -- a is first require，b is the second，and so on.
+
+```
+
+* `clipboard` copy text to system clipboard or get text from system clipboard
+
+```lua
+-- copy to clipboard
+clipboard.setContents('The text!')
+
+-- get test form clipboard
+local c = clipboard.getContents()
 
 ```
 
