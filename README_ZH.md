@@ -68,73 +68,97 @@ TODO
 
 * `menu` 变量，标识选择的右键菜单名
 * `action` 变量, 对于AnActionEvent类型的简单包装
+
 ```lua
 
-action.selectionModel.selectedText -- 选择的文本
-action.selectionModel.selectionStart -- 选择的文本的开始位置
-action.selectionModel.selectionEnd -- 选择的文本的末尾位置
-action.selectionModel.hasSelection -- 是否有选择的文本
+-- in lua
+event.selectionModel.selectedText -- 选择的文本
+event.selectionModel.selectionStart -- 选择的文本的开始位置
+event.selectionModel.selectionEnd -- 选择的文本的末尾位置
+event.selectionModel.hasSelection -- 是否有选择的文本
 
-action.document.text -- 当前文件的文本
-action.document.textLength -- 当前文件的文本长度
-action.document.lineCount -- 当前文件的文本行数
-action.document.replaceString(startPosition, endPosition, replace) -- 替换文本
-action.document.insertString(endPosition, text) -- 插入文本
+event.document.text -- 当前文件的文本
+event.document.textLength -- 当前文件的文本长度
+event.document.lineCount -- 当前文件的文本行数
+event.document.replaceString(startPosition, endPosition, replace) -- 替换文本
+event.document.insertString(endPosition, text) -- 插入文本
+
+-- in js
+event.selectionModel().selectedText() -- 选择的文本
+event.selectionModel().selectionStart() -- 选择的文本的开始位置
+event.selectionModel().selectionEnd() -- 选择的文本的末尾位置
+event.selectionModel().hasSelection() -- 是否有选择的文本
+
+event.document().text() -- 当前文件的文本
+event.document().textLength() -- 当前文件的文本长度
+event.document().lineCount() -- 当前文件的文本行数
+event.document().replaceString(startPosition, endPosition, replace) -- 替换文本
+event.document().insertString(endPosition, text) -- 插入文本
+
 
 ```
+
 * `dialog` 变量，显示一个对话框，用于接收用户的输入
+
 ```lua
 
 local result = dialog.show({
     type = 'text', -- 显示一个文本框
     field = '用户名', -- 展示名
     default = '10', -- 默认文本
-},{
+}, {
     type = 'radio', -- 单选框
     field = '性别', -- 文本框的名字
     default = '未知', -- 默认选择
-    options = {'男', '女', '未知'} -- 选项
+    options = { '男', '女', '未知' } -- 选项
 }, {
     type = 'checkbox', -- 复选框
     field = '技能', -- 展示名
-    default = {'Lua', 'Java'}, -- 默认选择
-    options = {'Lua', 'Java', 'Golang'} -- 选项
+    default = { 'Lua', 'Java' }, -- 默认选择
+    options = { 'Lua', 'Java', 'Golang' } -- 选项
 }, {
     type = 'dropdown', -- 下拉列表
     field = '工作年限', -- 展示名
     default = '0-5年', -- 默认选择
-    options = {'0-5年', '5-10年', '10年以上'} -- 选项
+    options = { '0-5年', '5-10年', '10年以上' } -- 选项
 })
 
-if result.success then -- result.success 为true时，标识用户点击了OK按钮
-    
+if result.success then
+    -- result.success 为true时，标识用户点击了OK按钮
+
     print(result.data['用户名']) -- 文本框里填写的内容
     print(result.data['性别']) -- 单选框选择的内容
     print(result.data['技能']) -- 复选框选择的内容
     print(result.data['工作年限']) -- 下拉列表选择的内容
-    
+
 end
 
 ```
+
 ![对话框](doc/images/dialog_demo.png)
 
 * `toast` 变量，用于展示提示
+
 ```lua
 toast.info('show info message')
 toast.error('show error message')
 toast.warn('show warning message')
 ```
+
 ![Toast](doc/images/toast_demo.png)
 
 * `log` 变量，用户输出信息
+
 ```lua
 log.info('output info message')
 log.error('output error message')
 log.warn('output warning message')
 ```
+
 ![Log Demo](doc/images/log_demo.png)
 
 * `require` 变量，用于获取头部信息里require里的变量
+
 ```lua
 -- @start
 -- ...
@@ -160,11 +184,16 @@ require['a'].decode('{}')
 ![使用脚本](doc/images/use_script1.gif)
 
 ### 4. 问答
+
 #### 4.1 为什么叫MonkeyKing？
-浏览器上可以通过[油猴(Tampermonkey)](https://www.tampermonkey.net)插件快速实现一个自己的插件，开发这个插件的灵感来自油猴插件，所以起了一个类似的名字，MonkeyKing同时也是中国神话中的一个角色。
+
+浏览器上可以通过[油猴(Tampermonkey)](https://www.tampermonkey.net)
+插件快速实现一个自己的插件，开发这个插件的灵感来自油猴插件，所以起了一个类似的名字，MonkeyKing同时也是中国神话中的一个角色。
 
 #### 4.2 后面还会添加其他的语言支持吗？
+
 目前插件只支持`Javascript`和`Lua`编写的插件，至于会不会添加其他语言的支持，还未确定，如果需求量大的话可以考虑添加。
 
 #### 4.3 如何发布自己写的脚本？
+
 所有的脚本都在 [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts) 里，可以Fork这个版本库，然后提交PR.

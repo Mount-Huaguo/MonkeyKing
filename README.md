@@ -5,6 +5,7 @@
 [![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
 
 ## 1. Intro [中文简介](README_ZH.md)
+
 <!-- Plugin description -->
 Quickly implement some tiny Intellij Idea scripts by `Javascript` or `Lua` to process text.
 
@@ -45,11 +46,11 @@ TODO
 -- @start
 -- @version     0.1
 -- @namespace   com.github.mounthuaguo.mk
--- @name        脚本名
+-- @name        Script Name
 -- @type        action or template
--- @menu        右键菜单名
+-- @menu        Name in right click menu
 -- @require     https://raw.githubusercontent.com/rxi/json.lua/master/json.lua
--- @一些其他的字段，随便添加。
+-- @ Some other fields what you want。
 -- @end
 
 ```
@@ -74,20 +75,33 @@ TODO
 3. Predefined variant and methods
 
 * `menu` the name displayed in right click menu
-* `action` a sample wrap of AnActionEvent 
+* `action` a sample wrap of AnActionEvent
 
 ```lua
 
-action.selectionModel.selectedText -- the selected text
-action.selectionModel.selectionStart -- the selection start
-action.selectionModel.selectionEnd -- the selection end
-action.selectionModel.hasSelection -- 
+-- in lua script
+event.selectionModel.selectedText -- the selected text
+event.selectionModel.selectionStart -- the selection start
+event.selectionModel.selectionEnd -- the selection end
+event.selectionModel.hasSelection -- 
 
-action.document.text -- the text of the document
-action.document.textLength -- document length
-action.document.lineCount -- document line count
-action.document.replaceString(startPosition, endPosition, replace) -- replace a string
-action.document.insertString(endPosition, text) -- insert a string
+event.document.text -- the text of the document
+event.document.textLength -- document length
+event.document.lineCount -- document line count
+event.document.replaceString(startPosition, endPosition, replace) -- replace a string
+event.document.insertString(endPosition, text) -- insert a string
+
+-- in javascript
+event.selectionModel().selectedText() -- the selected text
+event.selectionModel().selectionStart() -- the selection start
+event.selectionModel().selectionEnd() -- the selection end
+event.selectionModel().hasSelection() -- 
+
+event.document().text() -- the text of the document
+event.document().textLength() -- document length
+event.document().lineCount() -- document line count
+event.document.replaceString(startPosition, endPosition, replace) -- replace a string
+event.document.insertString(endPosition, text) -- insert a string
 
 ```
 
@@ -180,12 +194,16 @@ require['a'].decode('{}')
 
 #### 4.1 Why called MonkeyKing？
 
-We can quickly implement a sample script in internet browser by [Tampermonkey](https://www.tampermonkey.net) plugin. The inspiration for developing this plug-in came from it, so a similar name was given. MonkeyKing is also a character in Chinese mythology.
+We can quickly implement a sample script in internet browser by [Tampermonkey](https://www.tampermonkey.net) plugin. The
+inspiration for developing this plug-in came from it, so a similar name was given. MonkeyKing is also a character in
+Chinese mythology.
 
 #### 4.2 Will other language support be added later?
 
-Currently the plug-ins only support plug-ins written by `Javascript` and `Lua`. As for whether other languages will be added, it has not yet been determined. If the demand is large, you can consider adding them.
-
+Currently the plug-ins only support plug-ins written by `Javascript` and `Lua`. As for whether other languages will be
+added, it has not yet been determined. If the demand is large, you can consider adding them.
 
 #### 4.3 How to publish a script written by yourself?
-All scripts are in [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts), you can fork this repository and submit PR.
+
+All scripts are in [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts), you can fork this repository
+and submit PR.
