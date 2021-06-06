@@ -24,7 +24,6 @@ class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll 
         (tabbedPane).addTab("Scripts", scriptConfigureComponent)
         (tabbedPane).addTab("Browser", browserPanel)
         tabbedPane.addChangeListener {
-            println("tabbedPane.addChangeListener: $it, ${tabbedPane.selectedIndex}, ${tabbedPane.selectedComponent}")
             if (tabbedPane.selectedIndex == 1) {
                 browserPanel.setupUI()
             }

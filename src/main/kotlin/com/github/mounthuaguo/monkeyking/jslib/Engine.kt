@@ -32,7 +32,6 @@ class Engine(
 
     private inner class PrintFunc : Function<Any, Unit> {
         override fun apply(msg: Any) {
-            println("PrintFunc $msg")
             MyToolWindowManager.getInstance().print(event.project, scriptName, "$msg\n")
         }
     }

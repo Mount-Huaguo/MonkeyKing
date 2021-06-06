@@ -70,10 +70,7 @@ class ScriptDialogWrapper(
     init {
         init()
 
-        println("init ScriptDialog")
-
         title = MonkeyBundle.getMessage("scriptDialogTitle")
-
     }
 
     private fun getTemplate(): List<ScriptModel> {

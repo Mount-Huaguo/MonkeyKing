@@ -33,10 +33,6 @@ class ApplicationService : Disposable {
     private val defaultActions = mutableListOf<String>()
     private var conn: MessageBusConnection? = null
 
-    init {
-        println(MonkeyBundle.message("applicationService"))
-    }
-
     companion object {
         fun getInstance(): ApplicationService {
             return ServiceManager.getService(ApplicationService::class.java)
@@ -59,7 +55,6 @@ class ApplicationService : Disposable {
                 defaultActions.add(action.templatePresentation.text)
             }
         }
-        println("defaultActions $defaultActions")
     }
 
     fun reload(scripts: List<ScriptModel>) {
@@ -137,7 +132,6 @@ class ApplicationService : Disposable {
                 continue
             }
             val id = actionManager.getId(action)
-            println("unregister action: $id, ${action.templatePresentation.text}")
             group.remove(action, actionManager)
             actionManager.unregisterAction(id)
         }
@@ -165,7 +159,6 @@ class ApplicationService : Disposable {
                     action,
                     PluginId.getId(MonkeyBundle.getMessage("pluginId"))
                 )
-                println("register action: $id, $menu")
                 group.add(action, Constraints.FIRST)
             }
         }
@@ -210,7 +203,7 @@ class LuaScriptAction(
 
     private fun showError(msg: String) {
         e.project ?: return
-        MyToolWindowManager.getInstance().print(e.project, script.name, msg)
+        MyToolWindowManager.getInstance().print(e.project, script.name, "$msg\n")
     }
 
     fun run() {
@@ -227,7 +220,6 @@ class LuaScriptAction(
                     val cache = ScriptCacheService.getInstance()
                     val requireTable = LuaTable()
                     script.requires.forEachIndexed() { index, it ->
-//                        println("load require: $it")
                         val source = cache.loadRepo(it)
                         if (source == "") {
                             app.invokeLater({

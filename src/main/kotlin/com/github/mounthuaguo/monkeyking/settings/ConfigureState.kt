@@ -199,7 +199,6 @@ class ConfigureState {
                 continue
             }
             if (s.validate() != "") {
-                println("script ${s.name} is invalid and ignored")
                 continue
             }
             list.add(s)

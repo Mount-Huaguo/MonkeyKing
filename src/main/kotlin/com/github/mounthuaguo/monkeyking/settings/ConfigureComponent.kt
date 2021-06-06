@@ -202,7 +202,6 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             m[s.name] = Unit
         }
         state.setScripts(scripts)
-        println("saveScripts $scripts")
     }
 
     fun addScript(model: SampleScriptModel, source: String) {
@@ -277,7 +276,6 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 
         private fun reset() {
             myScriptEditor?.let {
-                println("release editor: $myScriptEditor")
                 EditorFactory.getInstance().releaseEditor(myScriptEditor!!)
             }
             myScriptEditor = createEditor()
@@ -440,7 +438,6 @@ class ConfigureBrowserComponent(
             return@setCellRenderer label
         }
         listView.addListSelectionListener {
-            println("listView.addListSelectionListener $it")
             if (it.valueIsAdjusting) {
                 return@addListSelectionListener
             }
@@ -609,7 +606,6 @@ class ConfigureBrowserComponent(
                     val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
                     val response = URL(url).readText()
                     this.processSampleScriptRaw(response)
-                    println("response: $response")
                     app.invokeLater(
                         {
                             callBack(this.getScripts())
@@ -624,7 +620,6 @@ class ConfigureBrowserComponent(
 
         private fun processSampleScriptRaw(source: String) {
             synchronized(repository) {
-                println("source $source")
                 val luaEnv = JsePlatform.standardGlobals()
                 val chuck = luaEnv.load(source)
                 val table = chuck.call().checktable()

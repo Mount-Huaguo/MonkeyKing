@@ -57,7 +57,6 @@ class Dialog : TwoArgFunction() {
                         defaultValue = ds.toTypedArray()
                     }
                 }
-                println("default value, $defaultValue")
                 arr.add(
                     InputModel(
                         type = table["type"].checkstring().toString(),
@@ -67,8 +66,6 @@ class Dialog : TwoArgFunction() {
                     )
                 )
             }
-
-            println("dialog arr: $args, $arr")
 
             val dialog = FormDialog(arr.toTypedArray())
             val result = LuaTable()

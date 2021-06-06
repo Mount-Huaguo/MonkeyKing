@@ -45,10 +45,10 @@ class MyToolWindowManager() {
             ToolWindowManager.getInstance(project).getToolWindow("Monkey King") ?: return
         synchronized(this) {
             try {
-                println(contentViews)
                 val item = contentViews[tabName]!!
-                item.console.print(msg, type)
                 toolWindow.contentManager.setSelectedContent(item.content)
+                item.console.print(msg, type)
+                toolWindow.show()
             } catch (e: Exception) {
                 val consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).console
                 val content = toolWindow.contentManager.factory.createContent(consoleView.component, tabName, false)
@@ -56,6 +56,7 @@ class MyToolWindowManager() {
                 toolWindow.contentManager.addContent(content)
                 toolWindow.contentManager.setSelectedContent(content)
                 consoleView.print(msg, type)
+                toolWindow.show()
                 contentViews[tabName] = Item(consoleView, content)
             }
         }
