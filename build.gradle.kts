@@ -2,6 +2,8 @@ import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.changelog.closure
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.text.SimpleDateFormat
+import java.util.*
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -21,7 +23,7 @@ plugins {
 }
 
 group = properties("pluginGroup")
-version = properties("pluginVersion")
+version = properties("pluginVersion") + SimpleDateFormat(".yyMMddhhmm").format(Date())
 
 // Configure project's dependencies
 repositories {
