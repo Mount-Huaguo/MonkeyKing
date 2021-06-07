@@ -15,7 +15,7 @@
 
 ### 2.2 通过源码安装
 
-在Release界面下载安装包到本地，然后通过在Idea插件设置界面，点击通过本地安装插件，选择刚下载安装包安装。
+在 [Release](https://github.com/Mount-Huaguo/MonkeyKing/releases) 界面下载安装包到本地，然后通过在Idea插件设置界面，点击通过本地安装插件，选择刚下载安装包安装。
 
 ## 3. 使用
 
@@ -208,3 +208,11 @@ local c = clipboard.getContents()
 #### 4.3 如何发布自己写的脚本？
 
 所有的脚本都在 [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts) 里，可以Fork这个版本库，然后提交PR.
+
+### 5. 参考
+
+1. Lua的解释器使用了[luak](https://github.com/korlibs/luak).
+   里面实现了大部分的Lua内置函数，但是并不是所有的函数都支持。一些比较复杂的逻辑可以使用 [luajava](https://github.com/jasonsantos/luajava) 来实现。
+
+2. Javascript使用了Java内置的 [nashorn](https://openjdk.java.net/projects/nashorn/)
+   解释器。虽然不支持大部分的前端内置的javascript方法，但是可以和Java进行相互调用，也是非常强大的。

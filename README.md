@@ -21,8 +21,8 @@ In Idea Plugin Marketing page, search MonkeyKing and then click install.
 
 ### 2.2 By Zip
 
-Download zip from release page, and open Idea Plugin Manager page. Click *Install Plugin from Disk...*, choose the
-download zip.
+Download zip from [Release Page](https://github.com/Mount-Huaguo/MonkeyKing/releases), and open Idea Plugin Manager
+page. Click *Install Plugin from Disk...*, choose the download zip.
 
 ## 3. Usage
 
@@ -205,7 +205,7 @@ local c = clipboard.getContents()
 
 #### 4.1 Why called MonkeyKing？
 
-We can quickly implement a sample script in internet browser by [Tampermonkey](https://www.tampermonkey.net) plugin. The
+We can quickly implement a simple script in internet browser by [Tampermonkey](https://www.tampermonkey.net) plugin. The
 inspiration for developing this plug-in came from it, so a similar name was given. MonkeyKing is also a character in
 Chinese mythology.
 
@@ -218,3 +218,9 @@ added, it has not yet been determined. If the demand is large, you can consider 
 
 All scripts are in [MonkeyKingScripts](https://github.com/Mount-Huaguo/MonkeyKingScripts), you can fork this repository
 and submit PR.
+
+### 5. Reference
+
+- [luak](https://github.com/korlibs/luak)
+- [luajava](https://github.com/jasonsantos/luajava)
+- [nashorn](https://openjdk.java.net/projects/nashorn/)

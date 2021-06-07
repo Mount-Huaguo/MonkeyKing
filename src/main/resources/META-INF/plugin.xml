@@ -2,6 +2,37 @@
     <id>com.github.mounthuaguo.monkeyking</id>
     <name>MonkeyKing</name>
     <vendor>Heramerom</vendor>
+    <description><![CDATA[
+        <p><b>MonkeyKing plugin for IntelliJ based IDEs.</b></p>
+        <br/>
+        <p>
+            <b>
+                <a href="https://github.com/Mount-Huaguo/MonkeyKing">GitHub</a> |
+                <a href="https://github.com/Mount-Huaguo/MonkeyKing/issues">Issues</a> |
+                <a href="https://github.com/Mount-Huaguo/MonkeyKingScripts">Scripts Repository</a>
+            </b>
+        </p>
+        <br/>
+        <p>
+            Quickly implement some tiny Intellij Idea scripts by `Javascript` or `Lua` help process text.
+        </p>
+        <br>
+        <p>
+            It's simple but useful. You can implement a lot of features with it.
+            Including but not limiting the following scenes.
+        </p>
+        <ul>
+            <li>1. Encode and Decode. Hex, Base64 etc.</li>
+            <li>2. Encrypt and Decrypt. AES, RSA etc.</li>
+            <li>3. Hash, MD5, MD4, SHa256 etc.</li>
+            <li>4. Code generate</li>
+            <li>5. Insert some text from database or remote server</li>
+        </ul>
+        <p>
+            etc, and most of scenes you want.
+        </p>
+        <br/>
+        ]]></description>
 
     <!-- Product and plugin compatibility requirements -->
     <!-- https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
