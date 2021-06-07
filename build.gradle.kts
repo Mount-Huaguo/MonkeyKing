@@ -2,8 +2,6 @@ import io.gitlab.arturbosch.detekt.Detekt
 import org.jetbrains.changelog.closure
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import java.text.SimpleDateFormat
-import java.util.*
 
 fun properties(key: String) = project.findProperty(key).toString()
 
@@ -23,7 +21,7 @@ plugins {
 }
 
 group = properties("pluginGroup")
-version = properties("pluginVersion") + SimpleDateFormat(".yyMMddhhmm").format(Date())
+version = properties("pluginVersion")
 
 // Configure project's dependencies
 repositories {
@@ -116,7 +114,7 @@ tasks {
 
     publishPlugin {
         dependsOn("patchChangelog")
-        token(System.getenv("PUBLISH_TOKEN"))
+        token(System.getenv("MONKEY_KING_PUBLISH_TOKEN"))
         // pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/deployment.html#specifying-a-release-channel
