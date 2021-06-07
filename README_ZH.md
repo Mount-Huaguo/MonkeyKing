@@ -25,9 +25,9 @@
 
 ![添加脚本](doc/images/add_script.jpg)
 
-* 使用预定义的脚本
+* 使用预定义的脚本, 在Browser标签页，点击use按钮
 
-TODO
+![Browser](doc/images/browser.png)
 
 ### 3.2 脚本约定
 

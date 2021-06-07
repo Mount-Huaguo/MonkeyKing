@@ -32,9 +32,9 @@ page. Click *Install Plugin from Disk...*, choose the download zip.
 
 ![Add a new script](doc/images/add_script.jpg)
 
-* Use browser
+* Use browser. In the browser tab and click use button
 
-TODO
+![Browser](doc/images/browser.png)
 
 ### 3.2 Specification
 
