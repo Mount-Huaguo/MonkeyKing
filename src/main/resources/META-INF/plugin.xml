@@ -69,7 +69,9 @@
                text="Monkey King"
                popup="true">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <separator/>
+            <action id="com.github.mounthuaguo.monkeyking.separator"
+                    class="com.intellij.openapi.actionSystem.Separator">
+            </action>
             <action id="com.github.mounthuaguo.monkeyking.luaaction"
                     class="com.github.mounthuaguo.monkeyking.actions.LuaScriptAction"
                     text="Process Text with Lua Script"

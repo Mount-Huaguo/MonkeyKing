@@ -125,9 +125,6 @@ class ApplicationService : Disposable {
     private fun removeAllScriptActions(actionManager: ActionManager, group: DefaultActionGroup) {
         val actions = group.childActionsOrStubs
         for (action in actions) {
-            if (action is Separator) {
-                continue
-            }
             if (defaultActions.contains(action.templatePresentation.text)) {
                 continue
             }
@@ -165,7 +162,7 @@ class ApplicationService : Disposable {
 
         val separatorAction = Separator()
         actionManager.registerAction(
-            "monkey_king_menu_repeat_action_sep",
+            "com.github.mounthuaguo.monkeyking.repeat.separator",
             separatorAction,
             PluginId.getId(MonkeyBundle.getMessage("pluginId"))
         )
@@ -176,7 +173,7 @@ class ApplicationService : Disposable {
         repeatAction.templatePresentation.description = "Repeat last action"
         repeatAction.templatePresentation.isEnabledAndVisible = false
         actionManager.registerAction(
-            "monkey_king_menu_repeat_action",
+            "com.github.mounthuaguo.monkeyking.repeat",
             repeatAction,
             PluginId.getId(MonkeyBundle.getMessage("pluginId"))
         )
@@ -282,7 +279,7 @@ class LuaScriptAction(
                 app.executeOnPooledThread {
                     val cache = ScriptCacheService.getInstance()
                     val requireTable = LuaTable()
-                    script.requires.forEachIndexed() { index, it ->
+                    script.requires.forEachIndexed { index, it ->
                         val source = cache.loadRepo(it)
                         if (source == "") {
                             app.invokeLater({
