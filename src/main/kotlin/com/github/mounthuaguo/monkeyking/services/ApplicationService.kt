@@ -162,12 +162,74 @@ class ApplicationService : Disposable {
                 group.add(action, Constraints.FIRST)
             }
         }
+
+        val separatorAction = Separator()
+        actionManager.registerAction(
+            "monkey_king_menu_repeat_action_sep",
+            separatorAction,
+            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+        )
+        group.add(separatorAction, Constraints.FIRST)
+
+        val repeatAction = RepeatLastAction.getInstance()
+        repeatAction.templatePresentation.text = "Repeat Last Action"
+        repeatAction.templatePresentation.description = "Repeat last action"
+        repeatAction.templatePresentation.isEnabledAndVisible = false
+        actionManager.registerAction(
+            "monkey_king_menu_repeat_action",
+            repeatAction,
+            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+        )
+        group.add(repeatAction, Constraints.FIRST)
     }
 
     override fun dispose() {
         conn?.let {
             conn!!.disconnect()
         }
+    }
+}
+
+class RepeatLastAction() : AnAction() {
+
+    private var menu: String? = null
+    private var script: ScriptModel? = null
+
+    fun updateAction(menu: String, script: ScriptModel) {
+        synchronized(this) {
+            this.menu = menu
+            this.script = script
+        }
+    }
+
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        e.presentation.isEnabled = menu != null && script != null
+        e.presentation.isVisible = menu != null && script != null
+    }
+
+    companion object {
+        private var instance: RepeatLastAction? = null
+            get() {
+                if (field == null) {
+                    field = RepeatLastAction()
+                }
+                return field
+            }
+
+        @JvmName("RepeatLastAction_getInstance")
+        @JvmStatic
+        @Synchronized
+        fun getInstance(): RepeatLastAction {
+            return requireNotNull(RepeatLastAction.instance)
+        }
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        if (this.script == null || this.menu == null) {
+            return
+        }
+        ScriptAction(this.script!!, this.menu!!).actionPerformed(e)
     }
 }
 
@@ -187,6 +249,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
                     throw Exception("Invalid script language ${script.language}")
                 }
             }
+            RepeatLastAction.getInstance().updateAction(menu, script)
         } catch (exception: Exception) {
             exception.printStackTrace()
             MyToolWindowManager.getInstance().print(e.project, script.name, e.toString())
