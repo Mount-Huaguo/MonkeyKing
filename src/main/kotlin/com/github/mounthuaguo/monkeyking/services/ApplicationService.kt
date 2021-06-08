@@ -152,10 +152,10 @@ class ApplicationService : Disposable {
             .forEach {
                 val script = it.value
                 if (script.type != "action") {
-                    return
+                    return@forEach
                 }
                 if (!script.enabled) {
-                    return
+                    return@forEach
                 }
                 if (script.actions.size > 1) {
                     val subGroup = DefaultActionGroup.createPopupGroup {
