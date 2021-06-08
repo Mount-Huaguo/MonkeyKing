@@ -58,7 +58,6 @@ class Dialog {
         return InputModel(typ, field, options = oa, default = default)
     }
 
-
     private fun getArray(a: Any): Array<String> {
         val meta = a::class.java
         val size = meta.getDeclaredMethod("size").invoke(a) as Int

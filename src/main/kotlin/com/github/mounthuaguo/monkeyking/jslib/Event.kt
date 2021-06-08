@@ -17,8 +17,7 @@ class Event(val event: AnActionEvent) {
         return Document()
     }
 
-
-    inner class SelectionModel() {
+    inner class SelectionModel {
 
         fun selectionStart(): Int {
             return editor.selectionModel.selectionStart
@@ -38,10 +37,9 @@ class Event(val event: AnActionEvent) {
         fun hasSelected(): Boolean {
             return editor.selectionModel.hasSelection()
         }
-
     }
 
-    inner class Document() {
+    inner class Document {
 
         fun text(): String {
             return editor.document.text
@@ -56,22 +54,29 @@ class Event(val event: AnActionEvent) {
         }
 
         fun replaceString(start: Int, end: Int, text: String) {
-            CommandProcessor.getInstance().executeCommand(event.project, {
-                ApplicationManager.getApplication().runWriteAction {
-                    editor.document.replaceString(start, end, text)
-                    editor.caretModel.moveToOffset(start + end)
-                }
-            }, "mk.event.document.replaceString", null)
+            CommandProcessor.getInstance().executeCommand(
+                event.project,
+                {
+                    ApplicationManager.getApplication().runWriteAction {
+                        editor.document.replaceString(start, end, text)
+                        editor.caretModel.moveToOffset(start + end)
+                    }
+                },
+                "mk.event.document.replaceString", null
+            )
         }
 
         fun insertString(position: Int, text: String) {
-            CommandProcessor.getInstance().executeCommand(event.project, {
-                ApplicationManager.getApplication().runWriteAction {
-                    editor.document.insertString(position, text)
-                    editor.caretModel.moveToOffset(position + text.length)
-                }
-            }, "mk.event.document.insertString", null)
+            CommandProcessor.getInstance().executeCommand(
+                event.project,
+                {
+                    ApplicationManager.getApplication().runWriteAction {
+                        editor.document.insertString(position, text)
+                        editor.caretModel.moveToOffset(position + text.length)
+                    }
+                },
+                "mk.event.document.insertString", null
+            )
         }
     }
-
 }

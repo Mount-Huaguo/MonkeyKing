@@ -33,11 +33,10 @@ class IdeaPlatform(
         return global
     }
 
-    inner class Print() : OneArgFunction() {
+    inner class Print : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             MyToolWindowManager.getInstance().print(project, scriptName, arg.toString() + "\n")
             return valueOf(true)
         }
     }
-
 }

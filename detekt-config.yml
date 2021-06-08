@@ -5,4 +5,70 @@ formatting:
   Indentation:
     continuationIndentSize: 8
   ParameterListWrapping:
+    active: false
     indentSize: 8
+  NoConsecutiveBlankLines:
+    active: false
+  NoBlankLineBeforeRbrace:
+    active: false
+  FinalNewline:
+    active: false
+  NoWildcardImports:
+    active: false
+  StringTemplate:
+    active: false
+  NoSemicolons:
+    active: false
+  NoEmptyClassBody:
+    active: false
+  TopLevelPropertyNaming:
+    active: false
+  MemberNameEqualsClassName:
+    active: false
+
+style:
+  NewLineAtEndOfFile:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: false
+  WildcardImport:
+    active: false
+  UnusedPrivateMember:
+    active: false
+
+naming:
+  TopLevelPropertyNaming:
+    active: false
+  MemberNameEqualsClassName:
+    active: false
+
+complexity:
+  LongMethod:
+    active: false
+  ComplexMethod:
+    active: false
+
+empty-blocks:
+  EmptyDefaultConstructor:
+    active: false
+  EmptyCatchBlock:
+    active: false
+  EmptyClassBlock:
+    active: false
+
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: false
+  PrintStackTrace:
+    active: false
+  TooGenericExceptionThrown:
+    active: false
+
+

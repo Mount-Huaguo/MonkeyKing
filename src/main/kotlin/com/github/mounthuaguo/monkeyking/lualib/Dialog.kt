@@ -17,7 +17,7 @@ class Dialog : TwoArgFunction() {
         return dialog
     }
 
-    class Show() : VarArgFunction() {
+    class Show : VarArgFunction() {
         override fun invoke(args: Varargs): Varargs {
 
             val num = args.narg()

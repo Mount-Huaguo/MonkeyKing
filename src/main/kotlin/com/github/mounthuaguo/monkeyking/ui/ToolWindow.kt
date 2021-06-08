@@ -9,8 +9,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.Content
 
-
-class MyToolWindowManager() {
+class MyToolWindowManager {
 
     inner class Item(val console: ConsoleView, val content: Content)
 
@@ -68,5 +67,4 @@ class ToolWindowFactory : ServiceViewToolWindowFactory() {
     override fun shouldBeAvailable(project: Project): Boolean {
         return true
     }
-
 }

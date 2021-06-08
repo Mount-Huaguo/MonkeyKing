@@ -11,10 +11,8 @@ import java.util.*
 import javax.script.Compilable
 import javax.script.ScriptEngineManager
 
-
 enum class ScriptLanguage(val value: String) {
     Lua("lua"), Js("js")
-
 }
 
 const val luaScriptModelTemplate = """-- @start
@@ -98,6 +96,7 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
             index = lastSep.toInt()
             baseName = baseName.removeSuffix(" $lastSep")
         } catch (e: Exception) {
+            e.printStackTrace()
         }
         while (true) {
             newName = "$baseName ${index++}"
@@ -111,7 +110,7 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
     }
 
     fun genMenuId(menu: String): String {
-        return "${namespace}.${name}.${menu}".replace(" ", "_")
+        return "$namespace.$name.$menu".replace(" ", "_")
     }
 
     private fun parse() {
@@ -169,7 +168,6 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
         return r
     }
 
-
     private fun parseRow(row: String, field: String): String {
         val prefix = if (language == "lua") {
             "--"
@@ -185,7 +183,6 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
     override fun toString(): String {
         return "ScriptModel[$namespace, $version, $name, $type, $actions, $enabled]"
     }
-
 }
 
 class ConfigureState {
@@ -205,7 +202,6 @@ class ConfigureState {
         }
         scripts = list.toList()
     }
-
 }
 
 @State(name = "com.github.mounthuaguo.monkeyking", storages = [Storage("monkeyking.xml")])
@@ -240,7 +236,6 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
         return newScripts.toList()
     }
 
-
     fun setScripts(scripts: List<ScriptModel>) {
         val newScripts = mutableListOf<ScriptModel>()
         for (script in scripts) {
@@ -249,13 +244,11 @@ class ConfigureStateService : PersistentStateComponent<ConfigureState> {
         mkState.scripts = newScripts.toList()
         mkState.timestamp = Date().time
     }
-
 }
 
 interface ScriptValidator {
     fun validate(): String
 }
-
 
 class LuaValidator(private val raw: String) : ScriptValidator {
     companion object {
@@ -272,7 +265,6 @@ class LuaValidator(private val raw: String) : ScriptValidator {
         }
     }
 }
-
 
 class JavascriptValidator(private val raw: String) : ScriptValidator {
     companion object {

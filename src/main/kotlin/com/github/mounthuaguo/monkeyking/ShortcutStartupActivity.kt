@@ -5,7 +5,6 @@ import com.github.mounthuaguo.monkeyking.settings.ConfigureStateService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
 
-
 class ShortcutStartupActivity : StartupActivity {
 
     @Volatile
@@ -13,8 +12,8 @@ class ShortcutStartupActivity : StartupActivity {
 
     override fun runActivity(project: Project) {
         if (!this.registered) {
-            registerActions();
-            this.registered = true;
+            registerActions()
+            this.registered = true
         }
     }
 
@@ -23,5 +22,4 @@ class ShortcutStartupActivity : StartupActivity {
         applicationService.storeDefaultActions()
         applicationService.reload(ConfigureStateService.getInstance().getScripts())
     }
-
 }

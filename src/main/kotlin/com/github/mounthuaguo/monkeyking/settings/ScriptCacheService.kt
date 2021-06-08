@@ -21,7 +21,6 @@ class ScriptCacheService : PersistentStateComponent<ScriptCacheService> {
 
     override fun getState(): ScriptCacheService {
         return this
-
     }
 
     override fun loadState(state: ScriptCacheService) {

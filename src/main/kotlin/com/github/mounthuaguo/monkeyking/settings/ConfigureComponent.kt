@@ -40,7 +40,6 @@ import java.net.URL
 import java.util.*
 import javax.swing.*
 
-
 const val fixedCellHeight = 32
 
 data class SampleScriptModel(val name: String, val language: String, val intro: String, val source: String) {
@@ -88,7 +87,6 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
         mySpliterator.firstComponent = listPanel
     }
 
-
     private fun setupListView() {
         val scriptListModel = ScriptListModel(state.cloneScripts().toMutableList())
         scriptListView.model = scriptListModel
@@ -106,13 +104,11 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
                 editorPanel.setScriptModel(model)
             }
         }
-
     }
 
     private fun setupEditorView() {
         mySpliterator.secondComponent = editorPanel
     }
-
 
     private fun anActionGroup(): DefaultActionGroup {
 
@@ -309,11 +305,14 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             editorSettings.additionalLinesCount = 3
             editorSettings.isCaretRowShown = false
 
-            editor.document.addDocumentListener(object : DocumentListener {
-                override fun documentChanged(e: DocumentEvent) {
-                    scriptHasChanged()
-                }
-            }, (editor as EditorImpl).disposable)
+            editor.document.addDocumentListener(
+                object : DocumentListener {
+                    override fun documentChanged(e: DocumentEvent) {
+                        scriptHasChanged()
+                    }
+                },
+                (editor as EditorImpl).disposable
+            )
             myScriptEditorPanel.removeAll()
             myScriptEditorPanel.add(editor.component, BorderLayout.CENTER)
             mySpliterator.firstComponent = myScriptEditorPanel
@@ -343,7 +342,6 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
         private fun createDocument(): Document {
             return EditorFactory.getInstance().createDocument(myScriptModel?.raw ?: "")
         }
-
     }
 }
 
@@ -380,7 +378,6 @@ class ConfigureBrowserComponent(
         fun refresh() {
             this.fireContentsChanged(this, 0, scriptList.size)
         }
-
     }
 
     private val alarm = Alarm()
@@ -393,13 +390,15 @@ class ConfigureBrowserComponent(
             override fun textChanged(e: javax.swing.event.DocumentEvent) {
                 val text = searchBar.text
                 alarm.cancelAllRequests()
-                alarm.addRequest({
-                    handleSearchTextChanged(text)
-                }, 300)
+                alarm.addRequest(
+                    {
+                        handleSearchTextChanged(text)
+                    },
+                    300
+                )
             }
         })
     }
-
 
     fun setupUI() {
         if (isLoad) {
@@ -575,7 +574,6 @@ class ConfigureBrowserComponent(
         fun component(): JComponent {
             return loadingDecorator.component
         }
-
     }
 
     class URLCache {
@@ -654,7 +652,6 @@ class ConfigureBrowserComponent(
             }
         }
 
-
         private fun url(pth: String): URL {
             return URL(MonkeyBundle.message("repositoryBaseUrl") + "/" + pth)
         }
@@ -690,17 +687,15 @@ class ConfigureBrowserComponent(
                         },
                         ModalityState.any()
                     )
-
                 } catch (e: Exception) {
                     e.printStackTrace()
                     callback(null, null)
                 }
             }
         }
-
     }
 
-    inner class ConfigureBrowserEditorPanel() {
+    inner class ConfigureBrowserEditorPanel {
 
         private val jsPanel = BorderLayoutPanel()
         private val luaPanel = BorderLayoutPanel()
@@ -743,33 +738,36 @@ class ConfigureBrowserComponent(
         }
 
         fun showSource(language: String, source: String) {
-            ApplicationManager.getApplication().invokeLater({
-                runWriteAction {
-                    when (language) {
-                        "js" -> {
-                            jsDocument?.let {
-                                jsDocument!!.setReadOnly(false)
-                                jsDocument!!.setText(source)
-                                jsDocument!!.setReadOnly(true)
+            ApplicationManager.getApplication().invokeLater(
+                {
+                    runWriteAction {
+                        when (language) {
+                            "js" -> {
+                                jsDocument?.let {
+                                    jsDocument!!.setReadOnly(false)
+                                    jsDocument!!.setText(source)
+                                    jsDocument!!.setReadOnly(true)
+                                }
+                                this.language = "js"
+                                (mainPanel.layout as CardLayout).first(mainPanel)
                             }
-                            this.language = "js"
-                            (mainPanel.layout as CardLayout).first(mainPanel)
-                        }
-                        "lua" -> {
-                            luaDocument?.let {
-                                luaDocument!!.setReadOnly(false)
-                                luaDocument!!.setText(source)
-                                luaDocument!!.setReadOnly(true)
+                            "lua" -> {
+                                luaDocument?.let {
+                                    luaDocument!!.setReadOnly(false)
+                                    luaDocument!!.setText(source)
+                                    luaDocument!!.setReadOnly(true)
+                                }
+                                this.language = "lua"
+                                (mainPanel.layout as CardLayout).last(mainPanel)
                             }
-                            this.language = "lua"
-                            (mainPanel.layout as CardLayout).last(mainPanel)
-                        }
-                        else -> {
-                            // do nothing
+                            else -> {
+                                // do nothing
+                            }
                         }
                     }
-                }
-            }, ModalityState.any())
+                },
+                ModalityState.any()
+            )
         }
 
         private fun createJsEditor(): Editor {
@@ -813,7 +811,5 @@ class ConfigureBrowserComponent(
             editorSettings.additionalLinesCount = 3
             editorSettings.isCaretRowShown = false
         }
-
     }
-
 }

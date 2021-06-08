@@ -7,13 +7,11 @@ import java.util.function.Function
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 
-
 class Engine(
     private val scriptName: String = "Monkey King",
     private val menu: String,
     private val event: AnActionEvent,
 ) {
-
 
     fun getEngine(): ScriptEngine {
         val factory = ScriptEngineManager()
@@ -35,5 +33,4 @@ class Engine(
             MyToolWindowManager.getInstance().print(event.project, scriptName, "$msg\n")
         }
     }
-
 }

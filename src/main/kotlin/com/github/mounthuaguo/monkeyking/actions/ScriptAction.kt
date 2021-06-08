@@ -21,9 +21,7 @@ import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard
 import java.awt.datatransfer.StringSelection
-import java.util.*
 import javax.script.ScriptEngineManager
-
 
 class ScriptActionWrap(
     private val language: String,
@@ -77,7 +75,6 @@ class ScriptActionWrap(
                 val message = "Copied!"
                 val success: Notification = NOTIFICATION_GROUP.createNotification(message, NotificationType.INFORMATION)
                 Notifications.Bus.notify(success, project)
-
             }
             "replace" -> {
                 var start = 0
@@ -121,15 +118,18 @@ class ScriptActionWrap(
                             rt["${(index + 'a'.toByte().toInt()).toChar()}"] = jse.load(txt).call()
                         }
                         jse["require"] = rt
-                        app.invokeLater({
-                            app.runWriteAction {
-                                try {
-                                    callback(jse.load(script).call().checkstring().toString())
-                                } catch (e: Exception) {
-                                    callback(e.toString())
+                        app.invokeLater(
+                            {
+                                app.runWriteAction {
+                                    try {
+                                        callback(jse.load(script).call().checkstring().toString())
+                                    } catch (e: Exception) {
+                                        callback(e.toString())
+                                    }
                                 }
-                            }
-                        }, ModalityState.any())
+                            },
+                            ModalityState.any()
+                        )
                     } catch (e: Exception) {
                         callback(e.toString())
                     }
@@ -155,9 +155,7 @@ class ScriptActionWrap(
             callBack(se.toString())
         }
     }
-
 }
-
 
 open class ScriptActionBase(private val language: String) : AnAction() {
 
@@ -172,12 +170,8 @@ open class ScriptActionBase(private val language: String) : AnAction() {
         val wrap = ScriptActionWrap(language, project, editor, document, selectionModel)
         wrap.showDialog()
     }
-
 }
 
+class LuaScriptAction : ScriptActionBase("lua")
 
-class LuaScriptAction() : ScriptActionBase("lua") {
-}
-
-class JSScriptAction() : ScriptActionBase("js") {
-}
+class JSScriptAction : ScriptActionBase("js")

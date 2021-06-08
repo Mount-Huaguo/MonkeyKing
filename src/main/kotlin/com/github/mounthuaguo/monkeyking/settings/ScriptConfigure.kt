@@ -9,7 +9,6 @@ import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JTabbedPane
 
-
 class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll {
 
     private val mainPanel = BorderLayoutPanel()
@@ -31,7 +30,6 @@ class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll 
         mainPanel.add(tabbedPane, BorderLayout.CENTER)
     }
 
-
     override fun createComponent(): JComponent {
         return mainPanel
     }
@@ -48,6 +46,4 @@ class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll 
     override fun getDisplayName(): String {
         return MonkeyBundle.message("configureName")
     }
-
-
 }

@@ -18,5 +18,4 @@ class Clipboard {
         val clipboard: Clipboard = Toolkit.getDefaultToolkit().systemClipboard
         clipboard.setContents(selection, selection)
     }
-
 }

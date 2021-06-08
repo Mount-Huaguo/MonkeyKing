@@ -26,7 +26,6 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.Window
 
-
 class ApplicationService : Disposable {
 
     private val actionGroupId = MonkeyBundle.message("actionGroupId")
@@ -197,7 +196,7 @@ class ApplicationService : Disposable {
     }
 }
 
-class RepeatLastActionHandler() {
+class RepeatLastActionHandler {
 
     var menu: String? = null
     var script: ScriptModel? = null
@@ -225,10 +224,9 @@ class RepeatLastActionHandler() {
             return requireNotNull(instance)
         }
     }
-
 }
 
-class RepeatLastAction() : AnAction() {
+class RepeatLastAction : AnAction() {
 
     override fun update(e: AnActionEvent) {
         super.update(e)
@@ -245,7 +243,6 @@ class RepeatLastAction() : AnAction() {
         ScriptAction(instance.script!!, instance.menu!!).actionPerformed(e)
     }
 }
-
 
 class ScriptAction(private val script: ScriptModel, private val menu: String) : AnAction() {
 
@@ -269,7 +266,6 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
         }
     }
 }
-
 
 class LuaScriptAction(
     private val script: ScriptModel,
@@ -298,9 +294,12 @@ class LuaScriptAction(
                     script.requires.forEachIndexed { index, it ->
                         val source = cache.loadRepo(it)
                         if (source == "") {
-                            app.invokeLater({
-                                showError("Error load require: $it")
-                            }, ModalityState.any())
+                            app.invokeLater(
+                                {
+                                    showError("Error load require: $it")
+                                },
+                                ModalityState.any()
+                            )
                             return@executeOnPooledThread
                         }
                         try {
@@ -308,36 +307,39 @@ class LuaScriptAction(
                             requireTable["${(index + 'a'.toByte().toInt()).toChar()}"] = chuck.call()
                         } catch (e: Exception) {
                             e.printStackTrace()
-                            app.invokeLater({
-                                showError("Error exec require: $it")
-                            }, ModalityState.any())
+                            app.invokeLater(
+                                {
+                                    showError("Error exec require: $it")
+                                },
+                                ModalityState.any()
+                            )
                         }
                     }
                     env["require"] = requireTable
-                    app.invokeLater({
-                        try {
-                            val chuck = env.load(script.raw)
-                            chuck.call()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                            showError("Error exec script: ${script.name}")
-                        }
-                    }, ModalityState.any())
+                    app.invokeLater(
+                        {
+                            try {
+                                val chuck = env.load(script.raw)
+                                chuck.call()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                showError("Error exec script: ${script.name}")
+                            }
+                        },
+                        ModalityState.any()
+                    )
                 }
             } else {
                 env["require"] = LuaTable()
                 val chuck = env.load(script.raw)
                 chuck.call()
             }
-
         } catch (e: Exception) {
             e.printStackTrace()
             showError(e.toString())
         }
-
     }
 }
-
 
 class JsScriptAction(
     private val script: ScriptModel,

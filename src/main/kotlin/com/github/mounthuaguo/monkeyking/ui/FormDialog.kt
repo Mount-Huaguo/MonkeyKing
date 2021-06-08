@@ -8,7 +8,6 @@ import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import javax.swing.*
 
-
 class InputModel(
     val type: String,
     val field: String,
@@ -46,7 +45,6 @@ class InputModel(
     override fun toString(): String {
         return "InputModel: [$type, $field, $options]"
     }
-
 }
 
 interface ValuedPanel {
@@ -90,7 +88,6 @@ private class DropdownValuedPanel(options: Array<String>, default: Any?) : Value
     override fun component(): JComponent {
         return cmb
     }
-
 }
 
 private class CheckBoxValuedPanel(val options: Array<String>, val default: Any?) : ValuedPanel {
@@ -130,7 +127,6 @@ private class CheckBoxValuedPanel(val options: Array<String>, val default: Any?)
         }
         return panel
     }
-
 }
 
 private class RadioValuedPanel(val options: Array<String>, val default: Any?) : ValuedPanel {
@@ -161,7 +157,6 @@ private class RadioValuedPanel(val options: Array<String>, val default: Any?) : 
     }
 }
 
-
 class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
 
     private var focusComponent: JComponent? = null
@@ -175,14 +170,16 @@ class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
         inputs.forEachIndexed { idx, item ->
             val label = JLabel(item.field)
             panel.add(
-                label, GridBagConstraints(
+                label,
+                GridBagConstraints(
                     0, idx, 1, 1, 0.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
                 )
             )
             val valuePanel = item.component()
             panel.add(
-                valuePanel, GridBagConstraints(
+                valuePanel,
+                GridBagConstraints(
                     1, idx, 2, 1, 1.0, 0.0,
                     GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsLeft(10), 0, 0
                 )
@@ -205,5 +202,4 @@ class FormDialog(private val inputs: Array<InputModel>) : DialogWrapper(false) {
         }
         return m.toMap()
     }
-
 }

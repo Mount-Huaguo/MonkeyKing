@@ -8,7 +8,6 @@ class MonkeyActionGroupProvider : CustomizableActionGroupProvider() {
         registrar?.addCustomizableActionGroup(
             "MonkeyKing.ActionGroup.Main",
             "Monkey King Actions - Main popup"
-        );
+        )
     }
-
 }

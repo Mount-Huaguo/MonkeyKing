@@ -29,7 +29,6 @@ import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-
 private const val luaBaseTemplate = """--
 -- You know what to do, Enjoy!
 -- 
@@ -97,25 +96,34 @@ class ScriptDialogWrapper(
 
     private fun sourceTextHasChanged(txt: String) {
         alarm.cancelAllRequests()
-        alarm.addRequest({
-            callback("source", txt, selectedScript?.requires)
-        }, 300)
+        alarm.addRequest(
+            {
+                callback("source", txt, selectedScript?.requires)
+            },
+            300
+        )
     }
 
     private fun scriptTextHasChanged(txt: String) {
         alarm.cancelAllRequests()
-        alarm.addRequest({
-            callback("script", txt, selectedScript?.requires)
-        }, 300)
+        alarm.addRequest(
+            {
+                callback("script", txt, selectedScript?.requires)
+            },
+            300
+        )
     }
 
     fun setTargetDocument(txt: String) {
         targetDocument ?: return
-        ApplicationManager.getApplication().invokeLater({
-            runWriteAction {
-                targetDocument!!.setText(txt)
-            }
-        }, ModalityState.any())
+        ApplicationManager.getApplication().invokeLater(
+            {
+                runWriteAction {
+                    targetDocument!!.setText(txt)
+                }
+            },
+            ModalityState.any()
+        )
     }
 
     private fun wrapEditor(editorName: String, editor: Editor): JPanel {
@@ -246,5 +254,4 @@ class ScriptDialogWrapper(
 
         return arrayOf(cancel, copy, replace)
     }
-
 }

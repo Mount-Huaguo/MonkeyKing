@@ -21,7 +21,6 @@ object MonkeyBundle : AbstractBundle(BUNDLE) {
         getLazyMessage(key, *params)
 }
 
-
 object MonkeyIcons {
     val LUA = IconLoader.getIcon("/asserts/lua.svg")
     val JS = IconLoader.getIcon("/asserts/js.svg")

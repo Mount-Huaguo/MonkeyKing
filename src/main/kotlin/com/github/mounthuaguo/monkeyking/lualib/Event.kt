@@ -62,17 +62,21 @@ class Event(
 
         inner class Replace(private val doc: Document, private val editor: Editor) : ThreeArgFunction() {
             override fun call(arg1: LuaValue, arg2: LuaValue, arg3: LuaValue): LuaValue {
-                project ?: return valueOf(false);
+                project ?: return valueOf(false)
                 return try {
                     val start = arg1.checkint()
                     val end = arg2.checkint()
                     val replace = arg3.checkstring().toString()
-                    CommandProcessor.getInstance().executeCommand(project, {
-                        ApplicationManager.getApplication().runWriteAction {
-                            doc.replaceString(start, end, replace)
-                            editor.caretModel.moveToOffset(start + end)
-                        }
-                    }, "mk.event.document.replaceString", null)
+                    CommandProcessor.getInstance().executeCommand(
+                        project,
+                        {
+                            ApplicationManager.getApplication().runWriteAction {
+                                doc.replaceString(start, end, replace)
+                                editor.caretModel.moveToOffset(start + end)
+                            }
+                        },
+                        "mk.event.document.replaceString", null
+                    )
                     valueOf(true)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -83,16 +87,20 @@ class Event(
 
         inner class Insert(private val doc: Document, private val editor: Editor) : TwoArgFunction() {
             override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
-                project ?: return valueOf(false);
+                project ?: return valueOf(false)
                 return try {
                     val position = arg1.checkint()
                     val replace = arg2.checkstring().toString()
-                    CommandProcessor.getInstance().executeCommand(project, {
-                        ApplicationManager.getApplication().runWriteAction {
-                            doc.insertString(position, replace)
-                            editor.caretModel.moveToOffset(position + replace.length)
-                        }
-                    }, "mk.event.document.insertString", null)
+                    CommandProcessor.getInstance().executeCommand(
+                        project,
+                        {
+                            ApplicationManager.getApplication().runWriteAction {
+                                doc.insertString(position, replace)
+                                editor.caretModel.moveToOffset(position + replace.length)
+                            }
+                        },
+                        "mk.event.document.insertString", null
+                    )
                     valueOf(true)
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -101,5 +109,4 @@ class Event(
             }
         }
     }
-
 }
