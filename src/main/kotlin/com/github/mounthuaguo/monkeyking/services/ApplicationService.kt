@@ -131,6 +131,11 @@ class ApplicationService : Disposable {
             if (defaultActions.contains(action.templatePresentation.text)) {
                 continue
             }
+            if (action is DefaultActionGroup) {
+                removeAllScriptActions(actionManager, action)
+                group.remove(action, actionManager)
+                continue
+            }
             val id = actionManager.getId(action)
             group.remove(action, actionManager)
             actionManager.unregisterAction(id)
@@ -142,26 +147,47 @@ class ApplicationService : Disposable {
         group: DefaultActionGroup,
         scripts: List<ScriptModel>
     ) {
-        for (script in scripts) {
-            if (script.type != "action") {
-                continue
+        scripts.withIndex()
+            .reversed()
+            .forEach {
+                val script = it.value
+                if (script.type != "action") {
+                    return
+                }
+                if (!script.enabled) {
+                    return
+                }
+                if (script.actions.size > 1) {
+                    val subGroup = DefaultActionGroup.createPopupGroup {
+                        script.name
+                    }
+                    for (menu in script.actions) {
+                        val id = script.genMenuId(menu)
+                        val action = ScriptAction(script, menu)
+                        action.templatePresentation.text = menu
+                        action.templatePresentation.description = menu
+                        actionManager.registerAction(
+                            id,
+                            action,
+                            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+                        )
+                        subGroup.add(action, Constraints.FIRST)
+                    }
+                    group.add(subGroup, Constraints.FIRST)
+                } else if (script.actions.size == 1) {
+                    val menu = script.actions[0]
+                    val id = script.genMenuId(menu)
+                    val action = ScriptAction(script, menu)
+                    action.templatePresentation.text = menu
+                    action.templatePresentation.description = menu
+                    actionManager.registerAction(
+                        id,
+                        action,
+                        PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+                    )
+                    group.add(action, Constraints.FIRST)
+                }
             }
-            if (!script.enabled) {
-                continue
-            }
-            for (menu in script.actions) {
-                val id = script.genMenuId(menu)
-                val action = ScriptAction(script, menu)
-                action.templatePresentation.text = menu
-                action.templatePresentation.description = menu
-                actionManager.registerAction(
-                    id,
-                    action,
-                    PluginId.getId(MonkeyBundle.getMessage("pluginId"))
-                )
-                group.add(action, Constraints.FIRST)
-            }
-        }
     }
 
     override fun dispose() {
