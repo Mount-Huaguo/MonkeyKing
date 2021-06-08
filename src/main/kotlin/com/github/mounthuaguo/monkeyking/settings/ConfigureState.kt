@@ -179,7 +179,7 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
         val pattern = "^\\s*$prefix\\s*@$field\\s+(.*)$"
         val match = Regex(pattern).find(row) ?: return ""
         val (fieldValue) = match.destructured
-        return fieldValue
+        return fieldValue.trim()
     }
 
     override fun toString(): String {

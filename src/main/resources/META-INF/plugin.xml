@@ -69,10 +69,15 @@
                description="Group of monkey king actions"
                text="Monkey King"
                popup="true">
+
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <action id="com.github.mounthuaguo.monkeyking.separator"
-                    class="com.intellij.openapi.actionSystem.Separator">
+            <separator/>
+            <action id="com.github.mounthuaguo.monkeyking.repeat"
+                    class="com.github.mounthuaguo.monkeyking.services.RepeatLastAction"
+                    text="Repeat Last Action"
+                    description="Repeat last action">
             </action>
+            <separator/>
             <action id="com.github.mounthuaguo.monkeyking.luaaction"
                     class="com.github.mounthuaguo.monkeyking.actions.LuaScriptAction"
                     text="Process Text with Lua Script"

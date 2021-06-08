@@ -125,6 +125,9 @@ class ApplicationService : Disposable {
     private fun removeAllScriptActions(actionManager: ActionManager, group: DefaultActionGroup) {
         val actions = group.childActionsOrStubs
         for (action in actions) {
+            if (action is Separator) {
+                continue
+            }
             if (defaultActions.contains(action.templatePresentation.text)) {
                 continue
             }
@@ -159,25 +162,6 @@ class ApplicationService : Disposable {
                 group.add(action, Constraints.FIRST)
             }
         }
-
-        val separatorAction = Separator()
-        actionManager.registerAction(
-            "com.github.mounthuaguo.monkeyking.repeat.separator",
-            separatorAction,
-            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
-        )
-        group.add(separatorAction, Constraints.FIRST)
-
-        val repeatAction = RepeatLastAction.getInstance()
-        repeatAction.templatePresentation.text = "Repeat Last Action"
-        repeatAction.templatePresentation.description = "Repeat last action"
-        repeatAction.templatePresentation.isEnabledAndVisible = false
-        actionManager.registerAction(
-            "com.github.mounthuaguo.monkeyking.repeat",
-            repeatAction,
-            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
-        )
-        group.add(repeatAction, Constraints.FIRST)
     }
 
     override fun dispose() {
@@ -187,10 +171,10 @@ class ApplicationService : Disposable {
     }
 }
 
-class RepeatLastAction() : AnAction() {
+class RepeatLastActionHandler() {
 
-    private var menu: String? = null
-    private var script: ScriptModel? = null
+    var menu: String? = null
+    var script: ScriptModel? = null
 
     fun updateAction(menu: String, script: ScriptModel) {
         synchronized(this) {
@@ -199,17 +183,11 @@ class RepeatLastAction() : AnAction() {
         }
     }
 
-    override fun update(e: AnActionEvent) {
-        super.update(e)
-        e.presentation.isEnabled = menu != null && script != null
-        e.presentation.isVisible = menu != null && script != null
-    }
-
     companion object {
-        private var instance: RepeatLastAction? = null
+        private var instance: RepeatLastActionHandler? = null
             get() {
                 if (field == null) {
-                    field = RepeatLastAction()
+                    field = RepeatLastActionHandler()
                 }
                 return field
             }
@@ -217,16 +195,28 @@ class RepeatLastAction() : AnAction() {
         @JvmName("RepeatLastAction_getInstance")
         @JvmStatic
         @Synchronized
-        fun getInstance(): RepeatLastAction {
-            return requireNotNull(RepeatLastAction.instance)
+        fun getInstance(): RepeatLastActionHandler {
+            return requireNotNull(instance)
         }
     }
 
+}
+
+class RepeatLastAction() : AnAction() {
+
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        val instance = RepeatLastActionHandler.getInstance()
+        e.presentation.isEnabled = instance.menu != null && instance.script != null
+        e.presentation.isVisible = instance.menu != null && instance.script != null
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
-        if (this.script == null || this.menu == null) {
+        val instance = RepeatLastActionHandler.getInstance()
+        if (instance.script == null || instance.menu == null) {
             return
         }
-        ScriptAction(this.script!!, this.menu!!).actionPerformed(e)
+        ScriptAction(instance.script!!, instance.menu!!).actionPerformed(e)
     }
 }
 
@@ -246,7 +236,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
                     throw Exception("Invalid script language ${script.language}")
                 }
             }
-            RepeatLastAction.getInstance().updateAction(menu, script)
+            RepeatLastActionHandler.getInstance().updateAction(menu, script)
         } catch (exception: Exception) {
             exception.printStackTrace()
             MyToolWindowManager.getInstance().print(e.project, script.name, e.toString())
@@ -329,7 +319,7 @@ class JsScriptAction(
     private val e: AnActionEvent
 ) {
     private fun showError(msg: String) {
-        MyToolWindowManager.getInstance().print(e.project, script.name, msg)
+        MyToolWindowManager.getInstance().print(e.project, script.name, "$msg\n")
     }
 
     fun run() {
