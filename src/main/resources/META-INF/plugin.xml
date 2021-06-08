@@ -14,7 +14,7 @@
         </p>
         <br/>
         <p>
-            Quickly implement some tiny Intellij Idea scripts by `Javascript` or `Lua` help process text.
+            Quickly implement some tiny Intellij Idea scripts by <i>Javascript</i> or <i>Lua</i> help process text.
         </p>
         <br>
         <p>
@@ -22,11 +22,12 @@
             Including but not limiting the following scenes.
         </p>
         <ul>
-            <li>1. Encode and Decode. Hex, Base64 etc.</li>
-            <li>2. Encrypt and Decrypt. AES, RSA etc.</li>
-            <li>3. Hash, MD5, MD4, SHa256 etc.</li>
-            <li>4. Code generate</li>
-            <li>5. Insert some text from database or remote server</li>
+            <li>Encode and Decode. Hex, Base64 etc.</li>
+            <li>Encrypt and Decrypt. AES, RSA etc.</li>
+            <li>Hash, MD5, MD4, SHA256 etc.</li>
+            <li>Format text.</li>
+            <li>Code generate</li>
+            <li>Insert some text from database or remote server</li>
         </ul>
         <p>
             etc, and most of scenes you want.
