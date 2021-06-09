@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="13px" height="13px" viewBox="0 0 13 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>矩形</title>
+    <g id="页面-4" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <path d="M2,0 L11,0 C12.1045695,-2.02906125e-16 13,0.8954305 13,2 L13,11 C13,12.1045695 12.1045695,13 11,13 L8,13 L2,13 C0.8954305,13 1.3527075e-16,12.1045695 0,11 L0,2 C-1.3527075e-16,0.8954305 0.8954305,2.02906125e-16 2,0 Z" id="矩形" fill="#b1b1b1"></path>
+        <rect id="矩形" stroke="#2e2e2e" fill="#2e2e2e" x="8.5" y="6" width="1" height="1"></rect>
+        <polyline id="直线-6" stroke="#2e2e2e" stroke-linecap="square" points="4.5 10.5 8.5 10.5 8.5 9.5 7.5 9.5"></polyline>
+        <rect id="矩形" stroke="#2e2e2e" fill="#2e2e2e" x="3.5" y="6" width="1" height="1"></rect>
+        <polyline id="直线-3" stroke="#2e2e2e" stroke-linecap="square" points="0.5 3.5 5.5 3.5 5.5 1.5 3.5 1.5"></polyline>
+        <polyline id="直线-5" stroke="#2e2e2e" stroke-linecap="square" points="12.5 3.5 8.5 3.5 7.5 3.5 7.5 1.5 9.5 1.5"></polyline>
+    </g>
+</svg>

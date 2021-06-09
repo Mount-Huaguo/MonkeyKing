@@ -104,7 +104,7 @@
         <toolWindow id="Monkey King"
                     anchor="bottom"
                     canCloseContents="true"
-                    icon="AllIcons.General.Modified"
+                    icon="/asserts/icon.svg"
                     factoryClass="com.github.mounthuaguo.monkeyking.ui.ToolWindowFactory"/>
     </extensions>
 
