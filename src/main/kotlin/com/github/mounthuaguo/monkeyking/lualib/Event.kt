@@ -1,5 +1,8 @@
 package com.github.mounthuaguo.monkeyking.lualib
 
+import com.github.mounthuaguo.monkeyking.util.scanHex
+import com.github.mounthuaguo.monkeyking.util.scanInt
+import com.github.mounthuaguo.monkeyking.util.scanString
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
@@ -12,6 +15,7 @@ import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.ThreeArgFunction
 import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.ZeroArgFunction
 
 class Event(
     val project: Project?,
@@ -40,7 +44,6 @@ class Event(
             t["selectionStart"] = selectionModel.selectionStart
             t["selectionEnd"] = selectionModel.selectionEnd
             t["hasSelection"] = valueOf(selectionModel.hasSelection())
-            // todo other properties and methods
             return t
         }
     }
@@ -56,7 +59,9 @@ class Event(
             t["lineCount"] = document.lineCount
             t["replaceString"] = Replace(document, editor)
             t["insertString"] = Insert(document, editor)
-            // todo other properties and methods
+            t["scanString"] = ScanString(editor)
+            t["scanInt"] = ScanInt(editor)
+            t["scanHex"] = ScanHex(editor)
             return t
         }
 
@@ -106,6 +111,48 @@ class Event(
                     e.printStackTrace()
                     valueOf(false)
                 }
+            }
+        }
+
+        inner class ScanHex(private val editor: Editor) : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                val text = editor.document.text
+                val start = editor.selectionModel.selectionStart
+                val end = editor.selectionModel.selectionStart
+                val r = scanHex(start, end, text)
+                val t = tableOf()
+                t["start"] = r.start
+                t["end"] = r.end
+                t["value"] = r.value
+                return t
+            }
+        }
+
+        inner class ScanString(private val editor: Editor) : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                val text = editor.document.text
+                val start = editor.selectionModel.selectionStart
+                val end = editor.selectionModel.selectionStart
+                val r = scanString(start, end, text)
+                val t = tableOf()
+                t["start"] = r.start
+                t["end"] = r.end
+                t["value"] = r.value
+                return t
+            }
+        }
+
+        inner class ScanInt(private val editor: Editor) : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                val text = editor.document.text
+                val start = editor.selectionModel.selectionStart
+                val end = editor.selectionModel.selectionStart
+                val r = scanInt(start, end, text)
+                val t = tableOf()
+                t["start"] = r.start
+                t["end"] = r.end
+                t["value"] = r.value
+                return t
             }
         }
     }

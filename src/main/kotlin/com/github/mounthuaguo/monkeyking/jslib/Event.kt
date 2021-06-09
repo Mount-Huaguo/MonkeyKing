@@ -1,5 +1,6 @@
 package com.github.mounthuaguo.monkeyking.jslib
 
+import com.github.mounthuaguo.monkeyking.util.*
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.ApplicationManager
@@ -77,6 +78,27 @@ class Event(val event: AnActionEvent) {
                 },
                 "mk.event.document.insertString", null
             )
+        }
+
+        fun scanInt(): ScanInt {
+            val text = editor.document.text
+            val start = editor.selectionModel.selectionStart
+            val end = editor.selectionModel.selectionStart
+            return scanInt(start, end, text)
+        }
+
+        fun scanString(): ScanString {
+            val text = editor.document.text
+            val start = editor.selectionModel.selectionStart
+            val end = editor.selectionModel.selectionStart
+            return scanString(start, end, text)
+        }
+
+        fun scanHex(): ScanString {
+            val text = editor.document.text
+            val start = editor.selectionModel.selectionStart
+            val end = editor.selectionModel.selectionStart
+            return scanHex(start, end, text)
         }
     }
 }
