@@ -170,7 +170,7 @@ class ApplicationService : Disposable {
                             action,
                             PluginId.getId(MonkeyBundle.getMessage("pluginId"))
                         )
-                        subGroup.add(action, Constraints.FIRST)
+                        subGroup.add(action, Constraints.LAST)
                     }
                     group.add(subGroup, Constraints.FIRST)
                 } else if (script.actions.size == 1) {
