@@ -63,7 +63,7 @@ class Dialog {
         val size = meta.getDeclaredMethod("size").invoke(a) as Int
         val method = meta.getDeclaredMethod("get", Object::class.java)
         val options = mutableListOf<String>()
-        for (i in 0..size) {
+        for (i in 0 until size) {
             val option = method.invoke(a, i.toString()).toString()
             options.add(option)
         }
