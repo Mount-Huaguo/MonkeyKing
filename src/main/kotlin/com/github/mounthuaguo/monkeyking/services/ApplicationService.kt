@@ -246,23 +246,23 @@ class RepeatLastAction : AnAction() {
 
 class ScriptAction(private val script: ScriptModel, private val menu: String) : AnAction() {
 
-    override fun actionPerformed(e: AnActionEvent) {
+    override fun actionPerformed(actionEvent: AnActionEvent) {
         try {
             when (script.language) {
                 ScriptLanguage.Lua.value -> {
-                    LuaScriptAction(script, menu, e).run()
+                    LuaScriptAction(script, menu, actionEvent).run()
                 }
                 ScriptLanguage.Js.value -> {
-                    JsScriptAction(script, menu, e).run()
+                    JsScriptAction(script, menu, actionEvent).run()
                 }
                 else -> {
                     throw Exception("Invalid script language ${script.language}")
                 }
             }
             RepeatLastActionHandler.getInstance().updateAction(menu, script)
-        } catch (exception: Exception) {
-            exception.printStackTrace()
-            MyToolWindowManager.getInstance().print(e.project, script.name, e.toString())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            MyToolWindowManager.getInstance().print(actionEvent.project, script.name, e.toString())
         }
     }
 }
@@ -270,20 +270,20 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
 class LuaScriptAction(
     private val script: ScriptModel,
     private val menu: String,
-    private val e: AnActionEvent
+    private val actionEvent: AnActionEvent
 ) {
 
     private fun showError(msg: String) {
-        e.project ?: return
-        MyToolWindowManager.getInstance().print(e.project, script.name, "$msg\n")
+        actionEvent.project ?: return
+        MyToolWindowManager.getInstance().print(actionEvent.project, script.name, "$msg\n")
     }
 
     fun run() {
         try {
             val env = IdeaPlatform(
                 scriptName = script.name,
-                project = e.project,
-                actionEvent = e
+                project = actionEvent.project,
+                actionEvent = actionEvent
             ).globals()
             env["menu"] = menu
             if (script.requires.isNotEmpty()) {
@@ -344,16 +344,16 @@ class LuaScriptAction(
 class JsScriptAction(
     private val script: ScriptModel,
     private val menu: String,
-    private val e: AnActionEvent
+    private val actionEvent: AnActionEvent
 ) {
     private fun showError(msg: String) {
-        MyToolWindowManager.getInstance().print(e.project, script.name, "$msg\n")
+        MyToolWindowManager.getInstance().print(actionEvent.project, script.name, "$msg\n")
     }
 
     fun run() {
         try {
-            Engine(script.name, menu, e).getEngine().eval(script.raw)
-        } catch (se: Exception) {
+            Engine(script.name, menu, actionEvent).getEngine().eval(script.raw)
+        } catch (e: Exception) {
             showError(e.toString())
         }
     }
