@@ -183,6 +183,17 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
     override fun toString(): String {
         return "ScriptModel[$namespace, $version, $name, $type, $actions, $enabled]"
     }
+
+    override fun equals(other: Any?): Boolean {
+        return when (other) {
+            is ScriptModel -> {
+                this.language == other.language && this.enabled == other.enabled && this.raw == other.raw
+            }
+            else -> {
+                false
+            }
+        }
+    }
 }
 
 class ConfigureState {

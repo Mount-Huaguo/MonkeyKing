@@ -178,7 +178,42 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
             }
         }
 
-        val actionGroup = DefaultActionGroup(addAction, copyAction, removeAction)
+        val upAction: AnAction = object : DumbAwareAction(AllIcons.General.ArrowUp) {
+            override fun actionPerformed(e: AnActionEvent) {
+                if (scriptListView.selectedIndex < 0) {
+                    return
+                }
+                if ((scriptListView.model as ScriptListModel).up(scriptListView.selectedIndex)) {
+                    scriptListView.selectedIndex = scriptListView.selectedIndex - 1
+                }
+            }
+
+            override fun update(e: AnActionEvent) {
+                super.update(e)
+                e.presentation.isEnabled =
+                    (scriptListView.selectedIndex > 0)
+            }
+        }
+
+        val downAction: AnAction = object : DumbAwareAction(AllIcons.General.ArrowDown) {
+            override fun actionPerformed(e: AnActionEvent) {
+                if (scriptListView.selectedIndex < 0) {
+                    return
+                }
+                if ((scriptListView.model as ScriptListModel).down(scriptListView.selectedIndex)) {
+                    scriptListView.selectedIndex = scriptListView.selectedIndex + 1
+                }
+            }
+
+            override fun update(e: AnActionEvent) {
+                super.update(e)
+                val index = scriptListView.selectedIndex
+                val size = (scriptListView.model as ScriptListModel).size
+                e.presentation.isEnabled = (index >= 0) && (scriptListView.selectedIndex < size - 1)
+            }
+        }
+
+        val actionGroup = DefaultActionGroup(addAction, copyAction, upAction, downAction, removeAction)
         actionGroup.isPopup = true
 
         return actionGroup
@@ -210,20 +245,12 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
         if (state.getScripts().size != scripts.size) {
             return true
         }
-        val m = mutableMapOf<String, Boolean>()
         val ss = state.getScripts()
-        for (s in ss) {
-            m[s.raw] = s.enabled
-        }
-        for (s in scripts) {
-            if (!m.containsKey(s.raw)) {
-                return true
-            }
-            if (m[s.raw]!! != s.enabled) {
+        scripts.forEachIndexed { i, t1 ->
+            if (t1 != ss[i]) {
                 return true
             }
         }
-
         return false
     }
 

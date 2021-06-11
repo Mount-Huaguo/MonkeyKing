@@ -46,4 +46,29 @@ class ScriptListModel(scripts: List<ScriptModel>) : AbstractListModel<JCheckBox>
     fun scripts(): List<ScriptModel> {
         return myScriptModels.toList()
     }
+
+    fun up(index: Int): Boolean {
+        if (index <= 0) {
+            return false
+        }
+        val tmp = myScriptModels[index]
+        myScriptModels[index] = myScriptModels[index - 1]
+        myScriptModels[index - 1] = tmp
+        fireContentsChanged(this, index - 1, index)
+        return true
+    }
+
+    fun down(index: Int): Boolean {
+        if (index < 0) {
+            return false
+        }
+        if (index >= myScriptModels.size - 1) {
+            return false
+        }
+        val tmp = myScriptModels[index]
+        myScriptModels[index] = myScriptModels[index + 1]
+        myScriptModels[index + 1] = tmp
+        fireContentsChanged(this, index + 1, index)
+        return true
+    }
 }
