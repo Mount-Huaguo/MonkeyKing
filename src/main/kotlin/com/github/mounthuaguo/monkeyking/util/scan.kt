@@ -6,8 +6,11 @@ fun scanString(start: Int, end: Int, text: String): ScanString {
     val chars = text.asSequence().toList()
     var startPosition = start
     var endPosition = end
+    var begin = ' '
+    var tail = ' '
     while (startPosition > 0) {
         if (chars[startPosition] == '\'' || chars[startPosition] == '"') {
+            begin = chars[startPosition]
             break
         }
         startPosition--
@@ -15,9 +18,13 @@ fun scanString(start: Int, end: Int, text: String): ScanString {
     startPosition++
     while (chars.size > endPosition) {
         if (chars[endPosition] == '\'' || chars[endPosition] == '"') {
+            tail = chars[endPosition]
             break
         }
         endPosition++
+    }
+    if (begin == ' ' || begin != tail) {
+        return ScanString(-1, -1, "")
     }
     return try {
         ScanString(startPosition, endPosition, chars.subList(startPosition, endPosition).joinToString(""))
