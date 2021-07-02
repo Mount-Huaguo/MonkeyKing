@@ -9,6 +9,7 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.command.WriteCommandAction
@@ -35,6 +36,7 @@ class ScriptActionWrap(
     private var scriptText: String = ""
     private var targetText: String = ""
     private val dialog: ScriptDialogWrapper
+    private val scriptThreadManager: ScriptThreadManager = ScriptThreadManager()
 
     init {
         sourceText = if (editor.selectionModel.hasSelection()) {
@@ -97,63 +99,7 @@ class ScriptActionWrap(
         requires: List<String>?,
         callBack: (String) -> Unit
     ) {
-        if (language == "lua") {
-            execLua(source, script, requires, callBack)
-        } else {
-            execJs(source, script, callBack)
-        }
-    }
-
-    private fun execLua(source: String, script: String, requires: List<String>?, callback: (String) -> Unit) {
-        try {
-            val jse = JsePlatform.standardGlobals()
-            jse["source"] = source
-            val rt = LuaTable()
-            if (requires != null && requires.isNotEmpty()) {
-                val app = ApplicationManager.getApplication()
-                app.executeOnPooledThread {
-                    try {
-                        requires.forEachIndexed { index, s ->
-                            val txt = ScriptCacheService.getInstance().loadRepo(s)
-                            rt["${(index + 'a'.toByte().toInt()).toChar()}"] = jse.load(txt).call()
-                        }
-                        jse["require"] = rt
-                        app.invokeLater(
-                            {
-                                app.runWriteAction {
-                                    try {
-                                        callback(jse.load(script).call().checkstring().toString())
-                                    } catch (e: Exception) {
-                                        callback(e.toString())
-                                    }
-                                }
-                            },
-                            ModalityState.any()
-                        )
-                    } catch (e: Exception) {
-                        callback(e.toString())
-                    }
-                }
-                return
-            }
-            jse["require"] = rt
-            val chuck = jse.load(script)
-            callback(chuck.call().checkstring().toString())
-        } catch (e: Exception) {
-            callback(e.toString())
-        }
-    }
-
-    private fun execJs(source: String, script: String, callBack: (String) -> Unit) {
-        try {
-            val factory = ScriptEngineManager()
-            val engine = factory.getEngineByName("nashorn")
-            engine.put("source", source)
-            val r = engine.eval(script)
-            callBack(r.toString())
-        } catch (se: Exception) {
-            callBack(se.toString())
-        }
+        scriptThreadManager.run(language, source, script, requires, callBack)
     }
 }
 
@@ -175,3 +121,154 @@ open class ScriptActionBase(private val language: String) : AnAction() {
 class LuaScriptAction : ScriptActionBase("lua")
 
 class JSScriptAction : ScriptActionBase("js")
+
+
+class ScriptThreadManager {
+
+    private var scriptThread: ScriptThread? = null
+
+    fun run(
+        language: String,
+        source: String,
+        script: String,
+        requires: List<String>?,
+        callback: (String) -> Unit
+    ) {
+        cancel()
+        scriptThread = ScriptThread(language, source, script, requires, callback)
+        scriptThread!!.start()
+    }
+
+    private fun cancel() {
+        try {
+            scriptThread?.let {
+                if (scriptThread!!.isAlive) {
+                    scriptThread!!.stop()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun dispose() {
+        cancel()
+    }
+
+}
+
+
+class ScriptThread(
+    private val language: String,
+    private val source: String,
+    private val script: String,
+    private val requires: List<String>?,
+    private val callback: (String) -> Unit,
+    private val timeout: Long = 5000
+) :
+    Thread() {
+
+    override fun run() {
+        val thread = Thread {
+            ScriptEval(language, source, script, requires, callback).exec()
+        }
+        thread.start()
+        sleep(timeout)
+        try {
+            if (thread.isAlive) {
+                thread.stop()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+
+
+class ScriptEval(
+    private val language: String,
+    private val source: String,
+    private val script: String,
+    private val requires: List<String>?,
+    private val callback: (String) -> Unit
+) {
+
+    fun exec() {
+        when (language) {
+            "lua" -> {
+                execLua(source, script, requires, callback)
+            }
+            "js" -> {
+                execJs(source, script, callback)
+            }
+            else -> {
+                print("not support language: $language")
+            }
+        }
+    }
+
+    private fun execLua(source: String, script: String, requires: List<String>?, callback: (String) -> Unit) {
+        val app = ApplicationManager.getApplication()
+        try {
+            val jse = JsePlatform.standardGlobals()
+            jse["source"] = source
+            val rt = LuaTable()
+            if (requires != null && requires.isNotEmpty()) {
+                try {
+                    requires.forEachIndexed { index, s ->
+                        val txt = ScriptCacheService.getInstance().loadRepo(s)
+                        rt["${(index + 'a'.toByte().toInt()).toChar()}"] = jse.load(txt).call()
+                    }
+                    jse["require"] = rt
+                } catch (e: Exception) {
+                    callback(e.toString())
+                    return
+                }
+            }
+            jse["require"] = rt
+
+            runWriteAction(app) {
+                try {
+                    callback(jse.load(script).call().checkstring().toString())
+                } catch (e: Exception) {
+                    callback(e.toString())
+                }
+            }
+
+        } catch (e: Exception) {
+            runWriteAction(app) {
+                callback(e.toString())
+            }
+        }
+    }
+
+    private fun runWriteAction(application: Application?, fn: () -> Unit) {
+        var app = application
+        if (app == null) {
+            app = ApplicationManager.getApplication()
+        }
+        app!!.invokeLater(
+            {
+                fn()
+            },
+            ModalityState.any()
+        )
+    }
+
+    private fun execJs(source: String, script: String, callBack: (String) -> Unit) {
+        val app = ApplicationManager.getApplication()
+        try {
+            val factory = ScriptEngineManager()
+            val engine = factory.getEngineByName("nashorn")
+            engine.put("source", source)
+            val r = engine.eval(script)
+            runWriteAction(app) {
+                callBack(r.toString())
+            }
+        } catch (se: Exception) {
+            runWriteAction(app) {
+                callBack(se.toString())
+            }
+        }
+    }
+}
