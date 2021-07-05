@@ -140,14 +140,8 @@ class ScriptThreadManager {
     }
 
     private fun cancel() {
-        try {
-            scriptThread?.let {
-                if (scriptThread!!.isAlive) {
-                    scriptThread!!.stop()
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        scriptThread?.let {
+            scriptThread!!.cancel()
         }
     }
 
@@ -168,20 +162,31 @@ class ScriptThread(
 ) :
     Thread() {
 
+    private var thread: Thread? = null
+
     override fun run() {
-        val thread = Thread {
+        thread = Thread {
             ScriptEval(language, source, script, requires, callback).exec()
         }
-        thread.start()
+        thread!!.start()
         sleep(timeout)
+        cancel()
+    }
+
+    @SuppressWarnings("deprecated")
+    fun cancel() {
         try {
-            if (thread.isAlive) {
-                thread.stop()
+            thread?.let {
+                thread!!.stop()
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+        }
+        try {
+            stop()
+        } catch (e: Exception) {
         }
     }
+
 }
 
 

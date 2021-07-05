@@ -100,7 +100,7 @@ class ScriptDialogWrapper(
             {
                 callback("source", txt, selectedScript?.requires)
             },
-            300
+            1000
         )
     }
 
@@ -110,7 +110,7 @@ class ScriptDialogWrapper(
             {
                 callback("script", txt, selectedScript?.requires)
             },
-            300
+            1000
         )
     }
 
