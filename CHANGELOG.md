@@ -2,8 +2,13 @@
 
 # MonkeyKing Changelog
 
-## [Unreleased]
-## [0.1.0-eap.2]
+## [0.1.1]
+
+Feature:
+- Configure Script can sort now.
+  
+Fix:
+- Exec Script in other thread to avoid block when exec script in real time.
 
 ## [0.1.0-eap.1]
 - First publish.
