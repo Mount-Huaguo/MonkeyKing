@@ -10,6 +10,12 @@ Feature:
 Fix:
 - Exec Script in other thread to avoid block when exec script in real time.
 
+## [0.1.0]
+- todo
+
+## [0.1.0-eap.2]
+- For test
+
 ## [0.1.0-eap.1]
 - First publish.
 
