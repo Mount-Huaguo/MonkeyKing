@@ -11,8 +11,6 @@ plugins {
     id("org.jetbrains.kotlin.jvm") version "1.4.32"
     // gradle-intellij-plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
     id("org.jetbrains.intellij") version "0.7.3"
-    // gradle-changelog-plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
-    id("org.jetbrains.changelog") version "1.1.2"
     // detekt linter - read more: https://detekt.github.io/detekt/gradle.html
     id("io.gitlab.arturbosch.detekt") version "1.16.0"
     // ktlint linter - read more: https://github.com/JLLeitschuh/ktlint-gradle
@@ -46,13 +44,6 @@ intellij {
     setPlugins(*properties("platformPlugins").split(',').map(String::trim).filter(String::isNotEmpty).toTypedArray())
 }
 
-// Configure gradle-changelog-plugin plugin.
-// Read more: https://github.com/JetBrains/gradle-changelog-plugin
-changelog {
-    version = properties("pluginVersion")
-    groups = emptyList()
-}
-
 // Configure detekt plugin.
 // Read more: https://detekt.github.io/detekt/kotlindsl.html
 detekt {
@@ -84,12 +75,6 @@ tasks {
         version(properties("pluginVersion"))
         sinceBuild(properties("pluginSinceBuild"))
         untilBuild(properties("pluginUntilBuild"))
-        // Get the latest available change notes from the changelog file
-        changeNotes(
-            closure {
-                changelog.getLatest().toHTML()
-            }
-        )
     }
 
     runPluginVerifier {
