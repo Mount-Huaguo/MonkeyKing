@@ -6,6 +6,7 @@ import com.intellij.codeInspection.ex.GlobalInspectionContextImpl.NOTIFICATION_G
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.LangDataKeys
@@ -122,8 +123,7 @@ class LuaScriptAction : ScriptActionBase("lua")
 
 class JSScriptAction : ScriptActionBase("js")
 
-
-class ScriptThreadManager {
+class ScriptThreadManager : Disposable {
 
     private var scriptThread: ScriptThread? = null
 
@@ -145,12 +145,10 @@ class ScriptThreadManager {
         }
     }
 
-    fun dispose() {
+    override fun dispose() {
         cancel()
     }
-
 }
-
 
 class ScriptThread(
     private val language: String,
@@ -159,8 +157,7 @@ class ScriptThread(
     private val requires: List<String>?,
     private val callback: (String) -> Unit,
     private val timeout: Long = 5000
-) :
-    Thread() {
+) : Thread() {
 
     private var thread: Thread? = null
 
@@ -177,13 +174,11 @@ class ScriptThread(
     fun cancel() {
         try {
             thread?.let {
-                thread!!.stop()
+                if (thread!!.isAlive) {
+                    thread!!.stop()
+                }
             }
-        } catch (e: Exception) {
-        }
-        try {
-            stop()
-        } catch (e: Exception) {
+        } catch (e: ThreadDeath) {
         }
     }
 
