@@ -181,9 +181,7 @@ class ScriptThread(
         } catch (e: ThreadDeath) {
         }
     }
-
 }
-
 
 class ScriptEval(
     private val language: String,
@@ -234,7 +232,6 @@ class ScriptEval(
                     callback(e.toString())
                 }
             }
-
         } catch (e: Exception) {
             runWriteAction(app) {
                 callback(e.toString())
