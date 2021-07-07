@@ -1,16 +1,16 @@
 # MonkeyKing
 
 ![Build](https://github.com/Mount-Huaguo/MonkeyKing/workflows/Build/badge.svg)
-[![Version](https://img.shields.io/jetbrains/plugin/v/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
-[![Downloads](https://img.shields.io/jetbrains/plugin/d/PLUGIN_ID.svg)](https://plugins.jetbrains.com/plugin/PLUGIN_ID)
+[![Version](https://img.shields.io/jetbrains/plugin/v/16949.svg)](https://plugins.jetbrains.com/plugin/16949)
+[![Downloads](https://img.shields.io/jetbrains/plugin/d/16949.svg)](https://plugins.jetbrains.com/plugin/16949)
 
 ## 1. Intro [中文简介](README_ZH.md)
 
 <!-- Plugin description -->
 Quickly implement some tiny Intellij Idea scripts by `Javascript` or `Lua` to process text.
 
-Sometimes we want to inject some tiny script to process text, e.g. Base64 encode or decode, AES or RSA encrypt etc. Or
-auto generate some text e.g. some random characters, code template. This Idea plugin help to do this.
+Sometimes we want to inject some tiny script to process text, e.g., Base64 encode or decode, AES or RSA encrypt etc. Or
+auto generate some text e.g., some random characters, code template. This Idea plugin help to do this.
 <!-- Plugin description end -->
 
 ## 2. Install
