@@ -211,7 +211,7 @@ Chinese mythology.
 
 #### 4.2 Will other language support be added later?
 
-Currently the plug-ins only support plug-ins written by `Javascript` and `Lua`. As for whether other languages will be
+Currently, the plug-ins only support plug-ins written by `Javascript` and `Lua`. As for whether other languages will be
 added, it has not yet been determined. If the demand is large, you can consider adding them.
 
 #### 4.3 How to publish a script written by yourself?
