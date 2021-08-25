@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.1.3]
+Feature:
+- Add Popup API
+
+Fix: 
+- None
+
+## [0.1.2]
+
 
 ## [0.1.1]
 

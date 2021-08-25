@@ -25,6 +25,7 @@ class Engine(
         engine.put("dialog", Dialog())
         engine.put("clipboard", Clipboard())
         engine.put("print", PrintFunc())
+        engine.put("popup", Popup(event))
         return engine
     }
 
