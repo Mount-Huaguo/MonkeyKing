@@ -259,8 +259,10 @@ class ScriptEval(
             val engine = factory.getEngineByName("nashorn")
             engine.put("source", source)
             val r = engine.eval(script)
-            runWriteAction(app) {
-                callBack(r.toString())
+            if (r != null) {
+                runWriteAction(app) {
+                    callBack(r.toString())
+                }
             }
         } catch (se: Exception) {
             runWriteAction(app) {
