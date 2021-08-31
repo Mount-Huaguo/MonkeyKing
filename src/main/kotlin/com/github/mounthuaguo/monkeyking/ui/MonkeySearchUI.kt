@@ -1,19 +1,14 @@
 package com.github.mounthuaguo.monkeyking.ui
 
 import com.intellij.icons.AllIcons
-import com.intellij.ide.SearchTopHitProvider
-import com.intellij.ide.actions.searcheverywhere.*
-import com.intellij.openapi.actionSystem.*
-import com.intellij.openapi.actionSystem.ex.AnActionListener
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUIBase
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.impl.ActionMenu
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.util.ProgressWindow
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.DumbService
-import com.intellij.openapi.project.DumbService.DumbModeListener
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.Disposer
 import com.intellij.ui.*
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.fields.ExtendableTextComponent
@@ -28,31 +23,25 @@ import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
+import javax.script.ScriptEngineManager
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.ListSelectionEvent
 
 
-class MonkeySearchListModel : AbstractListModel<Any>() {
-    override fun getSize(): Int {
-        return 10
-    }
+class MonkeySearchUI(
+    private val project: Project,
+    private val searchFun: (_: String) -> Any,
+    private val moreFun: (_: String) -> Any,
+) : SearchEverywhereUIBase(project) {
 
-    override fun getElementAt(index: Int): Any {
-        return "hello"
-    }
-}
+    private val engine = ScriptEngineManager().getEngineByName("nashorn")
 
-class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
-
-    private var mySearcher: ProgressIndicator? = null
-    private var mySearchProgressIndicator: ProgressIndicator? = null
-
-    private val REBUILD_LIST_DELAY: Long = 100
     private val rebuildListAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
+
+    private val myListModel: MonkeySearchListModel = MonkeySearchListModel()
 
     private val myCommandRenderer: ListCellRenderer<Any> = object : ColoredListCellRenderer<Any>() {
         override fun customizeCellRenderer(
@@ -65,28 +54,39 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
             setPaintFocusBorder(false)
             icon = EmptyIcon.ICON_16
             font = list.font
-            append(
-                "commandWithPrefix" + " ",
-                SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, list.foreground)
-            )
-            append("command.definition", SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, JBColor.GRAY))
+
+            val model = list.model as MonkeySearchListModel
+            val data = model.getElementAt(index) as Map<String, String>
+            data["name"]?.let {
+                append(
+                    data["name"]!!,
+                    SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, list.foreground)
+                )
+            }
+            data["desc"]?.let {
+                append("    ")
+                append(
+                    data["desc"]!!,
+                    SimpleTextAttributes(
+                        SimpleTextAttributes.STYLE_ITALIC,
+                        JBColor.GRAY
+                    )
+                )
+            }
             background = UIUtil.getListBackground(selected, hasFocus)
         }
     }
-
 
     init {
         init()
         initSearchActions()
     }
 
-
     override fun dispose() {
 
     }
 
     override fun createList(): JBList<Any> {
-        val myListModel = MonkeySearchListModel()
         return JBList(myListModel)
     }
 
@@ -119,7 +119,7 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
     }
 
     override fun getSelectedContributorID(): String {
-        return "aaa"
+        return "MonkeySearchUI"
     }
 
     override fun getSelectionIdentity(): Any? {
@@ -133,6 +133,12 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
     }
 
     override fun clearResults() {
+        myListModel.clear()
+        myResultsList.setEmptyText("Nothing To Say!!!")
+    }
+
+    fun stopSearch() {
+        rebuildListAlarm.cancelAllRequests()
     }
 
     override fun createSearchField(): ExtendableTextField {
@@ -158,106 +164,20 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
         return res
     }
 
-    private fun stopSearching() {
-        if (mySearchProgressIndicator != null && !mySearchProgressIndicator!!.isCanceled()) {
-            mySearchProgressIndicator!!.cancel()
-        }
-//        if (myBufferedListener != null) {
-//            myBufferedListener.clearBuffer()
-//        }
-    }
-
     private fun scheduleRebuildList() {
-        if (rebuildListAlarm.activeRequestCount == 0) rebuildListAlarm.addRequest({ rebuildList() }, REBUILD_LIST_DELAY)
+        rebuildListAlarm.cancelAllRequests()
+        rebuildListAlarm.addRequest({
+            rebuildList()
+        }, 150)
     }
 
     private fun rebuildList() {
         ApplicationManager.getApplication().assertIsDispatchThread()
-        stopSearching()
         myResultsList.setEmptyText("Search")
-//        val rawPattern = searchPattern
-//        updateViewType(if (rawPattern.isEmpty()) ViewType.SHORT else ViewType.FULL)
-//        val namePattern: String = mySelectedTab.getContributor()
-//            .map<String>(Function { contributor: SearchEverywhereContributor<*> ->
-//                contributor.filterControlSymbols(
-//                    rawPattern
-//                )
-//            })
-//            .orElse(rawPattern)
-//        val matcher = NameUtil.buildMatcherWithFallback(
-//            "*$rawPattern",
-//            "*$namePattern", NameUtil.MatchingCaseSensitivity.NONE
-//        )
-//        MatcherHolder.associateMatcher(myResultsList, matcher)
-//        val contributorsMap: MutableMap<SearchEverywhereContributor<*>, Int> = HashMap()
-//        val selectedContributor: Optional<SearchEverywhereContributor<*>> = mySelectedTab.getContributor()
-//        if (selectedContributor.isPresent) {
-//            contributorsMap[selectedContributor.get()] = SearchEverywhereUI.SINGLE_CONTRIBUTOR_ELEMENTS_LIMIT
-//        } else {
-//            contributorsMap.putAll(getAllTabContributors().stream().collect(Collectors.toMap(
-//                { c: SearchEverywhereContributor<*>? -> c }
-//            ) { c: SearchEverywhereContributor<*>? -> SearchEverywhereUI.MULTIPLE_CONTRIBUTORS_ELEMENTS_LIMIT })
-//            )
-//        }
-//        val contributors: List<SearchEverywhereContributor<*>>
-//        if (myProject != null) {
-//            contributors = DumbService.getInstance(myProject).filterByDumbAwareness(contributorsMap.keys)
-//            if (contributors.isEmpty() && DumbService.isDumb(myProject)) {
-//                myResultsList.setEmptyText(
-//                    IdeBundle.message(
-//                        "searcheverywhere.indexing.mode.not.supported",
-//                        mySelectedTab.getText(),
-//                        ApplicationNamesInfo.getInstance().fullProductName
-//                    )
-//                )
-//                myListModel.clear()
-//                return
-//            }
-//            if (contributors.size != contributorsMap.size) {
-//                myResultsList.setEmptyText(
-//                    IdeBundle.message(
-//                        "searcheverywhere.indexing.incomplete.results",
-//                        mySelectedTab.getText(),
-//                        ApplicationNamesInfo.getInstance().fullProductName
-//                    )
-//                )
-//            }
-//        } else {
-//            contributors = ArrayList(contributorsMap.keys)
-//        }
-//        myListModel.expireResults()
-//        contributors.forEach(Consumer { contributor: SearchEverywhereContributor<*>? ->
-//            myListModel.setHasMore(
-//                contributor,
-//                false
-//            )
-//        })
-//        val commandPrefix = SearchTopHitProvider.getTopHitAccelerator()
-//        if (rawPattern.startsWith(commandPrefix)) {
-//            val typedCommand = rawPattern.split(" ").toTypedArray()[0].substring(commandPrefix.length)
-//            val commands = SearchEverywhereUI.getCommandsForCompletion(contributors, typedCommand)
-//            if (!commands.isEmpty()) {
-//                if (rawPattern.contains(" ")) {
-//                    contributorsMap.keys.retainAll(commands.stream()
-//                        .map { obj: SearchEverywhereCommandInfo -> obj.contributor }
-//                        .collect(Collectors.toSet()))
-//                } else {
-//                    myListModel.clear()
-//                    val lst = ContainerUtil.map(
-//                        commands
-//                    ) { command: SearchEverywhereCommandInfo? ->
-//                        SearchEverywhereFoundElementInfo(
-//                            command,
-//                            0,
-//                            myStubCommandContributor
-//                        )
-//                    }
-//                    myListModel.addElements(lst)
-//                    ScrollingUtil.ensureSelectionExists(myResultsList)
-//                }
-//            }
-//        }
-//        mySearchProgressIndicator = mySearcher.search(contributorsMap, rawPattern)
+        val text = mySearchField.text
+        val data = searchFun(text)
+        val x = data as List<Map<String, String>>
+        myListModel.resetItems(x)
     }
 
     private fun onMouseClicked(e: MouseEvent) {
@@ -273,60 +193,15 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
     }
 
     private fun elementsSelected(indexes: IntArray, modifiers: Int) {
-        var indexes = indexes
-//        if (indexes.size == 1 && myListModel.isMoreElement(indexes[0])) {
-//            val contributor: SearchEverywhereContributor<*> = myListModel.getContributorForIndex<Any>(indexes[0])
-//            showMoreElements(contributor)
-//            return
-//        }
-//        indexes = Arrays.stream(indexes)
-//            .filter { i: Int -> !myListModel.isMoreElement(i) }
-//            .toArray()
-        val searchText = searchPattern
-        if (searchText.startsWith(SearchTopHitProvider.getTopHitAccelerator()) && searchText.contains(" ")) {
-//            featureTriggered(SearchEverywhereUsageTriggerCollector.COMMAND_USED, null)
-        }
-        var closePopup = false
-        for (i in indexes) {
-//            val contributor: SearchEverywhereContributor<Any> = myListModel.getContributorForIndex<Any>(i)
-//            val value: Any = myListModel.getElementAt(i)
-//            val selectedTabContributorID: String = mySelectedTab.getContributor()
-//                .map<String>(Function { contributor: SearchEverywhereContributor<*>? ->
-//                    SearchEverywhereUsageTriggerCollector.getReportableContributorID(
-//                        contributor!!
-//                    )
-//                })
-//                .orElse(SearchEverywhereManagerImpl.ALL_CONTRIBUTORS_GROUP_ID)
-//            val reportableContributorID = SearchEverywhereUsageTriggerCollector.getReportableContributorID(contributor)
-//            val data =
-//                SearchEverywhereUsageTriggerCollector.createData(reportableContributorID, selectedTabContributorID, i)
-//            if (value is PsiElement) {
-//                data.addLanguage(value.language)
-//            }
-//            featureTriggered(SearchEverywhereUsageTriggerCollector.CONTRIBUTOR_ITEM_SELECTED, data)
-//            closePopup = closePopup or contributor.processSelectedItem(value, modifiers, searchText)
-        }
-        if (closePopup) {
-            closePopup()
-        } else {
-            ApplicationManager.getApplication().invokeLater { myResultsList.repaint() }
-        }
+        println("elementsSelected $indexes, $modifiers")
     }
 
     private fun showMoreElements(contributor: SearchEverywhereContributor<*>) {
-//        featureTriggered(SearchEverywhereUsageTriggerCollector.MORE_ITEM_SELECTED, null)
-//        val found: Map<SearchEverywhereContributor<*>, Collection<SearchEverywhereFoundElementInfo>> =
-//            myListModel.getFoundElementsMap()
-//        val limit: Int = (myListModel.getItemsForContributor(contributor)
-//                + if (mySelectedTab.getContributor()
-//                .isPresent()
-//        ) SearchEverywhereUI.SINGLE_CONTRIBUTOR_ELEMENTS_LIMIT else SearchEverywhereUI.MULTIPLE_CONTRIBUTORS_ELEMENTS_LIMIT)
-//        mySearchProgressIndicator = mySearcher.findMoreItems(found, searchPattern, contributor, limit)
+        println("showMoreElements $contributor")
     }
 
     private fun closePopup() {
         ActionMenu.showDescriptionInStatusBar(true, myResultsList, null)
-        stopSearching()
         searchFinishedHandler.run()
     }
 
@@ -354,13 +229,15 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
                 }
             }
         }
+
         myResultsList.addMouseMotionListener(listMouseListener)
         myResultsList.addMouseListener(listMouseListener)
         ScrollingUtil.redirectExpandSelection(myResultsList, mySearchField)
 
         val escape = ActionManager.getInstance().getAction("EditorEscape")
-        DumbAwareAction.create { _: AnActionEvent? -> closePopup() }
+        DumbAwareAction.create { closePopup() }
             .registerCustomShortcutSet(escape?.shortcutSet ?: CommonShortcuts.ESCAPE, this)
+
         mySearchField.document.addDocumentListener(object : DocumentAdapter() {
             override fun textChanged(e: DocumentEvent) {
                 scheduleRebuildList()
@@ -368,81 +245,44 @@ class MonkeySearchUI(project: Project) : SearchEverywhereUIBase(project) {
         })
         myResultsList.addListSelectionListener { e: ListSelectionEvent? ->
             val selectedValue = myResultsList.selectedValue
-            if (selectedValue != null && myHint != null && myHint.isVisible) {
-//                updateHint(selectedValue)
-            }
-//            showDescriptionForIndex(myResultsList.selectedIndex)
+            println(selectedValue)
+            // todo exec script
         }
-
-        val busConnection =
-            myProject?.messageBus?.connect(this) ?: ApplicationManager.getApplication().messageBus.connect(this)
-        busConnection.subscribe(DumbService.DUMB_MODE, object : DumbModeListener {
-            override fun exitDumbMode() {
-                ApplicationManager.getApplication().invokeLater {
-                    updateSearchFieldAdvertisement()
-                    scheduleRebuildList()
-                }
-            }
-        })
-        busConnection.subscribe(AnActionListener.TOPIC, object : AnActionListener {
-            override fun afterActionPerformed(action: AnAction, dataContext: DataContext, event: AnActionEvent) {
-//                if (action === mySelectedTab.everywhereAction && event.inputEvent != null) {
-////                    myEverywhereAutoSet = false
-//                }
-            }
-        })
-        busConnection.subscribe(ProgressWindow.TOPIC,
-            ProgressWindow.Listener { pw: ProgressWindow? ->
-                Disposer.register(
-                    pw!!
-                ) { myResultsList.repaint() }
-            })
-
         mySearchField.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent) {
-//                val oppositeComponent = e.oppositeComponent
-//                if (!isHintComponent(oppositeComponent) && !UIUtil.haveCommonOwner(
-//                        this@SearchEverywhereUI,
-//                        oppositeComponent
-//                    )
-//                ) {
-//                    closePopup()
-//                }
+                // todo I don't know what to do
             }
         })
     }
 
-    private fun showDescriptionForIndex(index: Int) {
-//        if (index >= 0 && !myListModel.isMoreElement(index)) {
-//            val contributor: SearchEverywhereContributor<Any> = myListModel.getContributorForIndex<Any>(index)
-//            val data = contributor.getDataForItem(
-//                myListModel.getElementAt(index), SearchEverywhereDataKeys.ITEM_STRING_DESCRIPTION.name
-//            )
-//            if (data is String) {
-//                ActionMenu.showDescriptionInStatusBar(true, myResultsList, data as String?)
-//            }
-//        }
-    }
+    private class MonkeySearchListModel : AbstractListModel<Any>() {
 
-    private fun updateSearchFieldAdvertisement() {
-        if (mySearchField == null) return
-//        val commandsSupported: Boolean = mySelectedTab.getContributor()
-//            .map<Boolean>(Function { contributor: SearchEverywhereContributor<*> ->
-//                !contributor.supportedCommands.isEmpty()
-//            })
-//            .orElse(true)
-//        val advertisementText: String?
-//        advertisementText = if (commandsSupported) {
-//            IdeBundle.message("searcheverywhere.textfield.hint", SearchTopHitProvider.getTopHitAccelerator())
-//        } else {
-//            mySelectedTab.getContributor()
-//                .map<String>(Function { c: SearchEverywhereContributor<*> -> c.advertisement }).orElse(null)
-//        }
-//        mySearchField.remove(myAdvertisementLabel)
-//        if (advertisementText != null) {
-//            myAdvertisementLabel.setText(advertisementText)
-//            mySearchField.add(myAdvertisementLabel, BorderLayout.EAST)
-//        }
-    }
+        private val elements = mutableListOf<Map<String, String>>()
 
+        override fun getSize(): Int {
+            return elements.size
+        }
+
+        override fun getElementAt(index: Int): Any {
+            return elements.get(index)
+        }
+
+        fun resetItems(items: List<Map<String, String>>) {
+            clear()
+            addItems(items)
+        }
+
+        fun addItems(items: List<Map<String, String>>) {
+            val start = elements.size - 1
+            elements.addAll(items)
+            val end = elements.size - 1
+            fireIntervalAdded(this, start, end)
+        }
+
+        fun clear() {
+            val index = elements.size - 1
+            elements.clear()
+            fireContentsChanged(this, 0, index)
+        }
+    }
 }
