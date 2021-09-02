@@ -1,10 +1,10 @@
 package com.github.mounthuaguo.monkeyking.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.actions.searcheverywhere.SearchEverywhereActions
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUIBase
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.CommonShortcuts
+import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.ActionMenu
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.DumbAwareAction
@@ -15,6 +15,7 @@ import com.intellij.ui.components.fields.ExtendableTextComponent
 import com.intellij.ui.components.fields.ExtendableTextField
 import com.intellij.ui.scale.JBUIScale
 import com.intellij.util.Alarm
+import com.intellij.util.Consumer
 import com.intellij.util.ui.EmptyIcon
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
@@ -23,8 +24,10 @@ import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
+import java.util.function.Supplier
 import javax.script.ScriptEngineManager
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -35,6 +38,7 @@ class MonkeySearchUI(
     private val project: Project,
     private val searchFun: (_: String) -> Any,
     private val moreFun: (_: String) -> Any,
+    private val hasSelectedIndex: (_: Int) -> Unit,
 ) : SearchEverywhereUIBase(project) {
 
     private val engine = ScriptEngineManager().getEngineByName("nashorn")
@@ -176,8 +180,14 @@ class MonkeySearchUI(
         myResultsList.setEmptyText("Search")
         val text = mySearchField.text
         val data = searchFun(text)
-        val x = data as List<Map<String, String>>
-        myListModel.resetItems(x)
+        if (data is String) {
+            myListModel.clear()
+            myResultsList.setEmptyText("Empty")
+        } else {
+            @Suppress("UNCHECKED_CAST")
+            val x = data as List<Map<String, String>>
+            myListModel.resetItems(x)
+        }
     }
 
     private fun onMouseClicked(e: MouseEvent) {
@@ -203,6 +213,20 @@ class MonkeySearchUI(
     private fun closePopup() {
         ActionMenu.showDescriptionInStatusBar(true, myResultsList, null)
         searchFinishedHandler.run()
+    }
+
+    private fun registerAction(actionID: String, action: Consumer<in AnActionEvent?>) {
+        registerAction(actionID, Supplier<AnAction> { DumbAwareAction.create(action) })
+    }
+
+    private fun registerAction(actionID: String, actionSupplier: Supplier<out AnAction>) {
+        Optional.ofNullable(ActionManager.getInstance().getAction(actionID))
+            .map { a: AnAction -> a.shortcutSet }
+            .ifPresent { shortcuts: ShortcutSet? ->
+                actionSupplier.get().registerCustomShortcutSet(
+                    shortcuts!!, this, this
+                )
+            }
     }
 
     private fun initSearchActions() {
@@ -233,6 +257,16 @@ class MonkeySearchUI(
         myResultsList.addMouseMotionListener(listMouseListener)
         myResultsList.addMouseListener(listMouseListener)
         ScrollingUtil.redirectExpandSelection(myResultsList, mySearchField)
+
+        val selectedItemAction = Consumer { e: AnActionEvent? ->
+            val index = myResultsList.selectedIndex
+            // todo has more
+            if (index >= 0) {
+                hasSelectedIndex(index)
+                closePopup()
+            }
+        }
+        registerAction(SearchEverywhereActions.SELECT_ITEM, selectedItemAction)
 
         val escape = ActionManager.getInstance().getAction("EditorEscape")
         DumbAwareAction.create { closePopup() }
@@ -273,9 +307,10 @@ class MonkeySearchUI(
         }
 
         fun addItems(items: List<Map<String, String>>) {
-            val start = elements.size - 1
+            val start = elements.size
             elements.addAll(items)
-            val end = elements.size - 1
+            val end = elements.size
+            println("addItems, $start, $end")
             fireIntervalAdded(this, start, end)
         }
 

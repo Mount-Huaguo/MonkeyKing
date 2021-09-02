@@ -1,5 +1,6 @@
 package com.github.mounthuaguo.monkeyking.jslib
 
+import com.github.mounthuaguo.monkeyking.ui.MonkeySearchUI
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
@@ -8,6 +9,7 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.BrowserHyperlinkListener
 import com.intellij.ui.JBColor
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.util.ui.JBInsets
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.Color
@@ -97,6 +99,62 @@ class Popup(
 
         fun showActions(list: List<String>) {
             // not implement
+        }
+
+        private fun dealWithSearchAction(searchKey: String, searchFunc: (_: String) -> Any): Any {
+            return try {
+                val ret = mutableListOf<Map<String, String>>()
+                val objs = searchFunc(searchKey) as Collection<*>
+                for (obj in objs) {
+                    @Suppress("UNCHECKED_CAST")
+                    ret.add(obj as Map<String, String>)
+                }
+                ret
+            } catch (e: Exception) {
+                ""
+            }
+        }
+
+        // search everywhere popup
+        fun showSearchEverywhere(
+            searchFunc: (_: String) -> Any,
+            moreFunc: (_: String) -> Any,
+            hasSelectedIndex: (_: Int) -> Unit
+        ) {
+            event.project ?: return;
+            val project = event.project!!
+            val ui = MonkeySearchUI(project, {
+                return@MonkeySearchUI dealWithSearchAction(it, searchFunc)
+            }, {
+                return@MonkeySearchUI dealWithSearchAction(it, moreFunc)
+            }, {
+                hasSelectedIndex(it)
+            })
+
+            val myBalloon = JBPopupFactory.getInstance()
+                .createComponentPopupBuilder(ui, ui.searchField)
+                .setProject(project)
+                .setModalContext(false)
+                .setCancelOnClickOutside(true)
+                .setRequestFocus(true)
+                .setCancelKeyEnabled(false)
+                .setCancelCallback {
+                    true
+                }
+                .addUserData("SIMPLE_WINDOW")
+                .setResizable(true)
+                .setMovable(true)
+                .setDimensionServiceKey(project, "search.monkeyking.everywhere.popup", true)
+                .setLocateWithinScreenBounds(false)
+                .createPopup()
+
+            ui.setSearchFinishedHandler {
+                myBalloon.cancel()
+            }
+            val size: Dimension = ui.minimumSize
+            JBInsets.addTo(size, myBalloon.content.insets)
+            myBalloon.setMinimumSize(size)
+            myBalloon.showInFocusCenter()
         }
     }
 }
