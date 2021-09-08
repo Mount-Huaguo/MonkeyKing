@@ -2,11 +2,11 @@ package com.github.mounthuaguo.monkeyking.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereActions
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUIBase
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.ActionMenu
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.ui.*
@@ -37,7 +37,6 @@ import javax.swing.event.ListSelectionEvent
 class MonkeySearchUI(
     private val project: Project,
     private val searchFun: (_: String) -> Any,
-    private val moreFun: (_: String) -> Any,
     private val hasSelectedIndex: (_: Int) -> Unit,
 ) : SearchEverywhereUIBase(project) {
 
@@ -60,19 +59,32 @@ class MonkeySearchUI(
             font = list.font
 
             val model = list.model as MonkeySearchListModel
+
+            @Suppress("UNCHECKED_CAST")
             val data = model.getElementAt(index) as Map<String, String>
+
+            data["hasMore"]?.let {
+                if (it == "true") {
+                    append(
+                        "Load more...",
+                        SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, JBColor.GRAY)
+                    )
+                }
+                return
+            }
+
             data["name"]?.let {
                 append(
-                    data["name"]!!,
+                    it,
                     SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, list.foreground)
                 )
             }
             data["desc"]?.let {
                 append("    ")
                 append(
-                    data["desc"]!!,
+                    it,
                     SimpleTextAttributes(
-                        SimpleTextAttributes.STYLE_ITALIC,
+                        SimpleTextAttributes.STYLE_PLAIN,
                         JBColor.GRAY
                     )
                 )
@@ -172,21 +184,35 @@ class MonkeySearchUI(
         rebuildListAlarm.cancelAllRequests()
         rebuildListAlarm.addRequest({
             rebuildList()
-        }, 150)
+        }, 300)
     }
 
     private fun rebuildList() {
         ApplicationManager.getApplication().assertIsDispatchThread()
-        myResultsList.setEmptyText("Search")
+        myResultsList.setEmptyText("Searching...")
         val text = mySearchField.text
-        val data = searchFun(text)
-        if (data is String) {
-            myListModel.clear()
-            myResultsList.setEmptyText("Empty")
-        } else {
-            @Suppress("UNCHECKED_CAST")
-            val x = data as List<Map<String, String>>
-            myListModel.resetItems(x)
+
+        val app = ApplicationManager.getApplication()
+        app.executeOnPooledThread {
+            val data = searchFun(text)
+            app.invokeLater(
+                {
+                    val newText = mySearchField.text
+                    if (text != newText) {
+                        return@invokeLater
+                    }
+                    if (data is String) {
+                        myListModel.clear()
+                        myResultsList.setEmptyText(data)
+                    } else {
+                        @Suppress("UNCHECKED_CAST")
+                        val results = data as List<Map<String, String>>
+                        println(results)
+                        myListModel.resetItems(results)
+                    }
+                },
+                ModalityState.any()
+            )
         }
     }
 
@@ -204,10 +230,11 @@ class MonkeySearchUI(
 
     private fun elementsSelected(indexes: IntArray, modifiers: Int) {
         println("elementsSelected $indexes, $modifiers")
-    }
-
-    private fun showMoreElements(contributor: SearchEverywhereContributor<*>) {
-        println("showMoreElements $contributor")
+        val selectedIndex = myResultsList.selectedIndex
+        if (selectedIndex > -1) {
+            hasSelectedIndex(selectedIndex)
+            closePopup()
+        }
     }
 
     private fun closePopup() {

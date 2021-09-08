@@ -104,13 +104,25 @@ class Popup(
         private fun dealWithSearchAction(searchKey: String, searchFunc: (_: String) -> Any): Any {
             return try {
                 val ret = mutableListOf<Map<String, String>>()
-                val objs = searchFunc(searchKey) as Collection<*>
-                for (obj in objs) {
+                val obj = searchFunc(searchKey)
+                val cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror")
+                if (!cls.isAssignableFrom(obj.javaClass)) {
+                    return ret
+                }
+                val isArray = cls.getMethod("isArray")
+                val result = isArray.invoke(obj)
+                if (result == null || result != true) {
+                    return ret
+                }
+                val values = cls.getMethod("values").invoke(obj)
+                for (value in values as Collection<*>) {
                     @Suppress("UNCHECKED_CAST")
-                    ret.add(obj as Map<String, String>)
+                    val m = value as Map<String, String>
+                    ret.add(m)
                 }
                 ret
             } catch (e: Exception) {
+                println("exception: $e")
                 ""
             }
         }
@@ -118,15 +130,12 @@ class Popup(
         // search everywhere popup
         fun showSearchEverywhere(
             searchFunc: (_: String) -> Any,
-            moreFunc: (_: String) -> Any,
             hasSelectedIndex: (_: Int) -> Unit
         ) {
             event.project ?: return;
             val project = event.project!!
             val ui = MonkeySearchUI(project, {
                 return@MonkeySearchUI dealWithSearchAction(it, searchFunc)
-            }, {
-                return@MonkeySearchUI dealWithSearchAction(it, moreFunc)
             }, {
                 hasSelectedIndex(it)
             })
@@ -154,7 +163,8 @@ class Popup(
             val size: Dimension = ui.minimumSize
             JBInsets.addTo(size, myBalloon.content.insets)
             myBalloon.setMinimumSize(size)
-            myBalloon.showInFocusCenter()
+
+            myBalloon.showCenteredInCurrentWindow(project)
         }
     }
 }
