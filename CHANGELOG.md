@@ -7,6 +7,7 @@
 ## [0.1.3]
 Feature:
 - Add Popup API
+- Add Search Everywhere UI
 
 Fix: 
 - None
