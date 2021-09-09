@@ -131,13 +131,17 @@ class Popup(
             searchFunc: (String, Boolean) -> Any,
             hasSelectedIndex: (Int) -> Unit
         ) {
-            event.project ?: return;
+            event.project ?: return
             val project = event.project!!
-            val ui = MonkeySearchUI(project, { key, more ->
-                return@MonkeySearchUI dealWithSearchAction(key, more, searchFunc)
-            }, {
-                hasSelectedIndex(it)
-            })
+            val ui = MonkeySearchUI(
+                project,
+                { key, more ->
+                    return@MonkeySearchUI dealWithSearchAction(key, more, searchFunc)
+                },
+                {
+                    hasSelectedIndex(it)
+                }
+            )
 
             val myBalloon = JBPopupFactory.getInstance()
                 .createComponentPopupBuilder(ui, ui.searchField)

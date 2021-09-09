@@ -99,7 +99,7 @@ class MonkeySearchUI(
     }
 
     override fun dispose() {
-
+        // todo
     }
 
     override fun createList(): JBList<Any> {
@@ -129,9 +129,11 @@ class MonkeySearchUI(
     }
 
     override fun toggleEverywhereFilter() {
+        // todo
     }
 
     override fun switchToContributor(contributorID: String) {
+        // todo
     }
 
     override fun getSelectedContributorID(): String {
