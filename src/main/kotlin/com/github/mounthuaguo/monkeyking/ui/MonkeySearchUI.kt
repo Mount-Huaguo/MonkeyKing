@@ -35,9 +35,9 @@ import javax.swing.event.ListSelectionEvent
 
 
 class MonkeySearchUI(
-    private val project: Project,
-    private val searchFun: (_: String) -> Any,
-    private val hasSelectedIndex: (_: Int) -> Unit,
+    project: Project,
+    private val searchFun: (String, Boolean) -> Any,
+    private val hasSelectedIndex: (Int) -> Unit,
 ) : SearchEverywhereUIBase(project) {
 
     private val engine = ScriptEngineManager().getEngineByName("nashorn")
@@ -183,18 +183,19 @@ class MonkeySearchUI(
     private fun scheduleRebuildList() {
         rebuildListAlarm.cancelAllRequests()
         rebuildListAlarm.addRequest({
-            rebuildList()
+            rebuildList(false)
         }, 300)
     }
 
-    private fun rebuildList() {
+    private fun rebuildList(isMore: Boolean) {
         ApplicationManager.getApplication().assertIsDispatchThread()
+        myHintLabel.text = ""
         myResultsList.setEmptyText("Searching...")
         val text = mySearchField.text
 
         val app = ApplicationManager.getApplication()
         app.executeOnPooledThread {
-            val data = searchFun(text)
+            val data = searchFun(text, isMore)
             app.invokeLater(
                 {
                     val newText = mySearchField.text
@@ -202,6 +203,7 @@ class MonkeySearchUI(
                         return@invokeLater
                     }
                     if (data is String) {
+                        myHintLabel.text = data
                         myListModel.clear()
                         myResultsList.setEmptyText(data)
                     } else {
