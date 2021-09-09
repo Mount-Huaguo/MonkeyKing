@@ -47,6 +47,8 @@ naming:
     active: false
 
 complexity:
+  TooManyFunctions:
+    active: false
   LongMethod:
     active: false
   ComplexMethod:
