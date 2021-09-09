@@ -33,7 +33,6 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.ListSelectionEvent
 
-
 class MonkeySearchUI(
     project: Project,
     private val searchFun: (String, Boolean) -> Any,
@@ -184,9 +183,12 @@ class MonkeySearchUI(
 
     private fun scheduleRebuildList() {
         rebuildListAlarm.cancelAllRequests()
-        rebuildListAlarm.addRequest({
-            rebuildList(false)
-        }, 300)
+        rebuildListAlarm.addRequest(
+            {
+                rebuildList(false)
+            },
+            300
+        )
     }
 
     private fun rebuildList(isMore: Boolean) {
