@@ -100,8 +100,8 @@ event.selectionModel().hasSelection() --
 event.document().text() -- the text of the document
 event.document().textLength() -- document length
 event.document().lineCount() -- document line count
-event.document.replaceString(startPosition, endPosition, replace) -- replace a string
-event.document.insertString(endPosition, text) -- insert a string
+event.document().replaceString(startPosition, endPosition, replace) -- replace a string
+event.document().insertString(endPosition, text) -- insert a string
 
 ```
 
