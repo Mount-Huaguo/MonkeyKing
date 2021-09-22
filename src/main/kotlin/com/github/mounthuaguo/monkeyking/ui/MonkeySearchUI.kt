@@ -85,7 +85,7 @@ class MonkeySearchUI(
     }
 
     override fun dispose() {
-        // todo
+        this.stopSearch()
     }
 
     override fun createList(): JBList<Any> {
@@ -141,7 +141,7 @@ class MonkeySearchUI(
         myResultsList.setEmptyText("Nothing To Say!!!")
     }
 
-    fun stopSearch() {
+    private fun stopSearch() {
         rebuildListAlarm.cancelAllRequests()
     }
 
@@ -197,11 +197,16 @@ class MonkeySearchUI(
                         myHintLabel.text = data
                         myListModel.clear()
                         myResultsList.setEmptyText(data)
-                    } else {
+                        return@invokeLater
+                    }
+                    try {
                         @Suppress("UNCHECKED_CAST")
                         val results = data as List<Map<String, String>>
-                        println(results)
                         myListModel.resetItems(results)
+                    } catch (e: Exception) {
+                        myHintLabel.text = e.toString()
+                        myListModel.clear()
+                        myResultsList.setEmptyText(e.toString())
                     }
                 },
                 ModalityState.any()
