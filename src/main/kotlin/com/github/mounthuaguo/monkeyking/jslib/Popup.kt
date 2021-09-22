@@ -101,10 +101,10 @@ class Popup(
             // not implement
         }
 
-        private fun dealWithSearchAction(searchKey: String, more: Boolean, searchFunc: (String, Boolean) -> Any): Any {
+        private fun dealWithSearchAction(searchKey: String, searchFunc: (String) -> Any): Any {
             return try {
                 val ret = mutableListOf<Map<String, String>>()
-                val obj = searchFunc(searchKey, more)
+                val obj = searchFunc(searchKey)
                 val cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror")
                 if (!cls.isAssignableFrom(obj.javaClass)) {
                     return ret
@@ -128,15 +128,15 @@ class Popup(
 
         // search everywhere popup
         fun showSearchEverywhere(
-            searchFunc: (String, Boolean) -> Any,
+            searchFunc: (String) -> Any,
             hasSelectedIndex: (Int) -> Unit
         ) {
             event.project ?: return
             val project = event.project!!
             val ui = MonkeySearchUI(
                 project,
-                { key, more ->
-                    return@MonkeySearchUI dealWithSearchAction(key, more, searchFunc)
+                { key ->
+                    return@MonkeySearchUI dealWithSearchAction(key, searchFunc)
                 },
                 {
                     hasSelectedIndex(it)

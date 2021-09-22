@@ -28,18 +28,15 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Future
 import java.util.function.Supplier
-import javax.script.ScriptEngineManager
 import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.ListSelectionEvent
 
 class MonkeySearchUI(
     project: Project,
-    private val searchFun: (String, Boolean) -> Any,
+    private val searchFun: (String) -> Any,
     private val hasSelectedIndex: (Int) -> Unit,
 ) : SearchEverywhereUIBase(project) {
-
-    private val engine = ScriptEngineManager().getEngineByName("nashorn")
 
     private val rebuildListAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
@@ -61,16 +58,6 @@ class MonkeySearchUI(
 
             @Suppress("UNCHECKED_CAST")
             val data = model.getElementAt(index) as Map<String, String>
-
-            data["hasMore"]?.let {
-                if (it == "true") {
-                    append(
-                        "Load more...",
-                        SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, JBColor.GRAY)
-                    )
-                }
-                return
-            }
 
             data["name"]?.let {
                 append(
@@ -185,13 +172,13 @@ class MonkeySearchUI(
         rebuildListAlarm.cancelAllRequests()
         rebuildListAlarm.addRequest(
             {
-                rebuildList(false)
+                rebuildList()
             },
             300
         )
     }
 
-    private fun rebuildList(isMore: Boolean) {
+    private fun rebuildList() {
         ApplicationManager.getApplication().assertIsDispatchThread()
         myHintLabel.text = ""
         myResultsList.setEmptyText("Searching...")
@@ -199,7 +186,7 @@ class MonkeySearchUI(
 
         val app = ApplicationManager.getApplication()
         app.executeOnPooledThread {
-            val data = searchFun(text, isMore)
+            val data = searchFun(text)
             app.invokeLater(
                 {
                     val newText = mySearchField.text
@@ -235,7 +222,6 @@ class MonkeySearchUI(
     }
 
     private fun elementsSelected(indexes: IntArray, modifiers: Int) {
-        println("elementsSelected $indexes, $modifiers")
         val selectedIndex = myResultsList.selectedIndex
         if (selectedIndex > -1) {
             hasSelectedIndex(selectedIndex)
@@ -293,7 +279,6 @@ class MonkeySearchUI(
 
         val selectedItemAction = Consumer { e: AnActionEvent? ->
             val index = myResultsList.selectedIndex
-            // todo has more
             if (index >= 0) {
                 hasSelectedIndex(index)
                 closePopup()
@@ -311,9 +296,12 @@ class MonkeySearchUI(
             }
         })
         myResultsList.addListSelectionListener { e: ListSelectionEvent? ->
-            val selectedValue = myResultsList.selectedValue
-            println(selectedValue)
-            // todo exec script
+            e?.let {
+                val item = myListModel.item(e.firstIndex)
+                myHintLabel.text = item["tip"]
+                return@addListSelectionListener
+            }
+            myHintLabel.text = initialHint
         }
         mySearchField.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent) {
@@ -331,7 +319,7 @@ class MonkeySearchUI(
         }
 
         override fun getElementAt(index: Int): Any {
-            return elements.get(index)
+            return elements[index]
         }
 
         fun resetItems(items: List<Map<String, String>>) {
@@ -343,8 +331,14 @@ class MonkeySearchUI(
             val start = elements.size
             elements.addAll(items)
             val end = elements.size
-            println("addItems, $start, $end")
             fireIntervalAdded(this, start, end)
+        }
+
+        fun item(index: Int): Map<String, String> {
+            if (index < 0 || index >= elements.size) {
+                return mapOf()
+            }
+            return elements[index]
         }
 
         fun clear() {
