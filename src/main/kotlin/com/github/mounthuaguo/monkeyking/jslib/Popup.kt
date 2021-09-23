@@ -165,6 +165,12 @@ class Popup(
             }
             val size: Dimension = ui.minimumSize
             JBInsets.addTo(size, myBalloon.content.insets)
+            if (size.height < 360) {
+                size.height = 360
+            }
+            if (size.width < 360) {
+                size.width = 360
+            }
             myBalloon.setMinimumSize(size)
 
             myBalloon.showCenteredInCurrentWindow(project)

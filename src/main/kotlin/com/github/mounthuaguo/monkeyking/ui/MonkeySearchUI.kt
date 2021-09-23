@@ -153,7 +153,6 @@ class MonkeySearchUI(
 
     private fun rebuildList() {
         ApplicationManager.getApplication().assertIsDispatchThread()
-        myHintLabel.text = ""
         myResultsList.setEmptyText("Searching...")
         val text = mySearchField.text
 
@@ -167,7 +166,6 @@ class MonkeySearchUI(
                         return@invokeLater
                     }
                     if (data is String) {
-                        myHintLabel.text = data
                         myListModel.clear()
                         myResultsList.setEmptyText(data)
                         return@invokeLater
@@ -177,7 +175,6 @@ class MonkeySearchUI(
                         val results = data as List<Map<String, String>>
                         myListModel.resetItems(results)
                     } catch (e: Exception) {
-                        myHintLabel.text = e.toString()
                         myListModel.clear()
                         myResultsList.setEmptyText(e.toString())
                     }
@@ -276,10 +273,8 @@ class MonkeySearchUI(
         myResultsList.addListSelectionListener { e: ListSelectionEvent? ->
             e?.let {
                 val item = myListModel.item(e.firstIndex)
-                myHintLabel.text = item["tip"]
                 return@addListSelectionListener
             }
-            myHintLabel.text = initialHint
         }
         mySearchField.addFocusListener(object : FocusAdapter() {
             override fun focusLost(e: FocusEvent) {
