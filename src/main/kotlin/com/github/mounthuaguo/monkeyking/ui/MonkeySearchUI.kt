@@ -1,8 +1,8 @@
 package com.github.mounthuaguo.monkeyking.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.actions.BigPopupUI
 import com.intellij.ide.actions.searcheverywhere.SearchEverywhereActions
-import com.intellij.ide.actions.searcheverywhere.SearchEverywhereUIBase
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.actionSystem.impl.ActionMenu
 import com.intellij.openapi.application.ApplicationManager
@@ -25,8 +25,6 @@ import java.awt.event.FocusEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Future
 import java.util.function.Supplier
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -36,7 +34,9 @@ class MonkeySearchUI(
     project: Project,
     private val searchFun: (String) -> Any,
     private val hasSelectedIndex: (Int) -> Unit,
-) : SearchEverywhereUIBase(project) {
+) : BigPopupUI(project) {
+
+    private val SEARCH_EVERYWHERE_SEARCH_FILED_KEY = "mk-search-everywhere-textfield" // only for testing purposes
 
     private val rebuildListAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
@@ -112,33 +112,6 @@ class MonkeySearchUI(
 
     override fun getAccessibleName(): String {
         return "Monkey Search"
-    }
-
-    override fun toggleEverywhereFilter() {
-        // todo
-    }
-
-    override fun switchToContributor(contributorID: String) {
-        // todo
-    }
-
-    override fun getSelectedContributorID(): String {
-        return "MonkeySearchUI"
-    }
-
-    override fun getSelectionIdentity(): Any? {
-        return null
-    }
-
-    override fun findElementsForPattern(pattern: String?): Future<MutableList<Any>> {
-        val future = CompletableFuture<MutableList<Any>>()
-        mySearchField.text = pattern
-        return future
-    }
-
-    override fun clearResults() {
-        myListModel.clear()
-        myResultsList.setEmptyText("Nothing To Say!!!")
     }
 
     private fun stopSearch() {
