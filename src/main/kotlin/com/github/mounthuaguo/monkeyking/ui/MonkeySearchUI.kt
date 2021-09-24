@@ -32,7 +32,7 @@ import javax.swing.event.ListSelectionEvent
 
 class MonkeySearchUI(
     project: Project,
-    private val searchFun: (String) -> Any,
+    private val searchFun: (String, Boolean) -> Any,
     private val hasSelectedIndex: (Int) -> Unit,
 ) : BigPopupUI(project) {
 
@@ -82,6 +82,7 @@ class MonkeySearchUI(
     init {
         init()
         initSearchActions()
+        rebuildList(false)
     }
 
     override fun dispose() {
@@ -145,20 +146,20 @@ class MonkeySearchUI(
         rebuildListAlarm.cancelAllRequests()
         rebuildListAlarm.addRequest(
             {
-                rebuildList()
+                rebuildList(false)
             },
             300
         )
     }
 
-    private fun rebuildList() {
+    private fun rebuildList(loadMore: Boolean) {
         ApplicationManager.getApplication().assertIsDispatchThread()
         myResultsList.setEmptyText("Searching...")
         val text = mySearchField.text
 
         val app = ApplicationManager.getApplication()
         app.executeOnPooledThread {
-            val data = searchFun(text)
+            val data = searchFun(text, loadMore)
             app.invokeLater(
                 {
                     val newText = mySearchField.text
@@ -199,6 +200,11 @@ class MonkeySearchUI(
     private fun elementsSelected(indexes: IntArray, modifiers: Int) {
         val selectedIndex = myResultsList.selectedIndex
         if (selectedIndex > -1) {
+            val item = myListModel.item(selectedIndex)
+            if (item.containsKey("hasMore")) {
+                rebuildList(true)
+                return
+            }
             hasSelectedIndex(selectedIndex)
             closePopup()
         }
@@ -255,6 +261,11 @@ class MonkeySearchUI(
         val selectedItemAction = Consumer { e: AnActionEvent? ->
             val index = myResultsList.selectedIndex
             if (index >= 0) {
+                val item = myListModel.item(index)
+                if (item.containsKey("hasMore")) {
+                    rebuildList(true)
+                    return@Consumer
+                }
                 hasSelectedIndex(index)
                 closePopup()
             }
