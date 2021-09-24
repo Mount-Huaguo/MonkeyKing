@@ -36,8 +36,6 @@ class MonkeySearchUI(
     private val hasSelectedIndex: (Int) -> Unit,
 ) : BigPopupUI(project) {
 
-    private val SEARCH_EVERYWHERE_SEARCH_FILED_KEY = "mk-search-everywhere-textfield" // only for testing purposes
-
     private val rebuildListAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
 
     private val myListModel: MonkeySearchListModel = MonkeySearchListModel()
@@ -137,7 +135,7 @@ class MonkeySearchUI(
                 }
             }
         }
-        res.putClientProperty(SEARCH_EVERYWHERE_SEARCH_FILED_KEY, true)
+        res.putClientProperty("mk-search-everywhere-textfield", true)
         res.layout = BorderLayout()
         return res
     }
