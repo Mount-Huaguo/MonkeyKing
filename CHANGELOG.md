@@ -3,6 +3,7 @@
 # MonkeyKing Changelog
 
 ## [Unreleased]
+## [0.1.3-eap.6]
 
 ## [0.1.3]
 Feature:
