@@ -191,6 +191,42 @@ local c = clipboard.getContents()
 
 ```
 
+* `popup` dialog (only support javascript)
+```js
+popup.builder().showBalloon('Hello Popup!')
+```
+![popup1](doc/images/popup1.png)
+
+```js
+popup.builder().show('<h1>Hello Popup!</h1>') // support sample HTML tags.
+```
+![popup2](doc/images/popup2.png)
+
+```js
+popup.builder().showSearchEverywhere(
+    // searchKey: The user input.
+    // loadMore: True when user click loadMore item.
+    // 
+    // return: An array contains name,desc fields.
+    //         If is last row and has more data. need set hasMore field.
+    function (searchKey, loadMore) {
+        return [{
+            name: 'options1',
+            desc: 'description1'
+        },{
+            name: 'options2',
+            desc: 'description2'
+        }]
+    }, 
+    // Will call when user click a row.
+    // index: the select index.
+    function (index) {
+        print('You select: ' + index)
+    })
+
+```
+![popup3](doc/images/popup3.jpg)
+
 ### 3.3 Use script
 
 * In right click menu

@@ -184,6 +184,44 @@ local c = clipboard.getContents()
 
 ```
 
+* `popup` 提示框 (仅支持javascript脚本)
+```js
+popup.builder().showBalloon('Hello Popup!')
+```
+![提示框1](doc/images/popup1.png)
+
+```js
+popup.builder().show('<h1>Hello Popup!</h1>') // 支持简单的html标签
+```
+![提示框2](doc/images/popup2.png)
+
+```js
+
+
+popup.builder().showSearchEverywhere(
+    // searchKey: 表示用户在文本框中输入的内容
+    // loadMore: 表示是不是需要加载更多
+    // 
+    // return: 返回一个结果数组，数组对象需要包含name, desc两个字段
+    //         如果是最后一行，并且有更多的数据，需要标记 hasMore 字段。
+    function (searchKey, loadMore) {
+        return [{
+            name: 'options1',
+            desc: 'description1'
+        },{
+            name: 'options2',
+            desc: 'description2'
+        }]
+    }, 
+    // 当用户选择一行结果时，调用此函数。
+    // index 标识用户点击的所在位置。
+    function (index) {
+        print('You select: ' + index)
+    })
+
+```
+![提示框3](doc/images/popup3.jpg)
+
 ### 3.3 使用脚本
 
 * 通过右键菜单中选择需要使用的脚本
