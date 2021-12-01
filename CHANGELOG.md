@@ -3,6 +3,10 @@
 # MonkeyKing Changelog
 ## [Unreleased]
 
+## [0.1.4]
+Fix:
+- Update build version.
+
 ## [0.1.3]
 Feature:
 - Add Popup API
