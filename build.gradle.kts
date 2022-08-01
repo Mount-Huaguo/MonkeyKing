@@ -37,6 +37,8 @@ intellij {
 dependencies {
 //  implementation("org.junit.jupiter:junit-jupiter:5.7.0")
 //  detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.16.0")
+  implementation("org.openjdk.nashorn:nashorn-core:15.4")
+
   implementation("com.soywiz.korlibs.luak:luak-jvm:2.4.13")
 }
 

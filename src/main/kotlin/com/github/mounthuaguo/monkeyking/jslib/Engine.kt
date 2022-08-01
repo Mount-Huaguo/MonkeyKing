@@ -3,9 +3,9 @@ package com.github.mounthuaguo.monkeyking.jslib
 import com.github.mounthuaguo.monkeyking.ui.MyToolWindowManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory
 import java.util.function.Function
 import javax.script.ScriptEngine
-import javax.script.ScriptEngineManager
 
 class Engine(
   private val scriptName: String = "Monkey King",
@@ -14,8 +14,7 @@ class Engine(
 ) {
 
   fun getEngine(): ScriptEngine {
-    val factory = ScriptEngineManager()
-    val engine = factory.getEngineByName("nashorn")
+    val engine = NashornScriptEngineFactory().scriptEngine
     engine.put("menu", menu)
     engine.put("project", event.project)
     engine.put("editor", event.getRequiredData(CommonDataKeys.EDITOR))

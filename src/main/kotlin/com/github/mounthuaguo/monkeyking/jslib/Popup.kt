@@ -9,8 +9,8 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.BrowserHyperlinkListener
 import com.intellij.ui.JBColor
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.util.ui.HTMLEditorKitBuilder
 import com.intellij.util.ui.JBInsets
-import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.Color
 import java.awt.Dimension
@@ -77,7 +77,7 @@ class Popup(
       val component = BorderLayoutPanel()
       val descriptionPanel = JEditorPane()
       val scroll = ScrollPaneFactory.createScrollPane(descriptionPanel)
-      descriptionPanel.editorKit = UIUtil.getHTMLEditorKit()
+      descriptionPanel.editorKit = HTMLEditorKitBuilder.simple()
       descriptionPanel.text = content
       descriptionPanel.isEditable = false
       descriptionPanel.addHyperlinkListener(BrowserHyperlinkListener())
@@ -93,14 +93,6 @@ class Popup(
       popup.showInBestPositionFor(event.dataContext)
     }
 
-    fun showList(list: List<String>) {
-      // not implement
-    }
-
-    fun showActions(list: List<String>) {
-      // not implement
-    }
-
     private fun dealWithSearchAction(
       searchKey: String,
       loadMore: Boolean,
@@ -109,7 +101,7 @@ class Popup(
       return try {
         val ret = mutableListOf<Map<String, String>>()
         val obj = searchFunc(searchKey, loadMore)
-        val cls = Class.forName("jdk.nashorn.api.scripting.ScriptObjectMirror")
+        val cls = Class.forName("org.openjdk.nashorn.api.scripting.ScriptObjectMirror")
         if (!cls.isAssignableFrom(obj.javaClass)) {
           return ret
         }

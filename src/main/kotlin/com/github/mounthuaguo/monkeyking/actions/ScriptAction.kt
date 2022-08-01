@@ -20,10 +20,10 @@ import com.intellij.openapi.editor.SelectionModel
 import com.intellij.openapi.project.Project
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.lib.jse.JsePlatform
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory
 import java.awt.Toolkit
 import java.awt.datatransfer.Clipboard
 import java.awt.datatransfer.StringSelection
-import javax.script.ScriptEngineManager
 
 class ScriptActionWrap(
   private val language: String,
@@ -216,11 +216,11 @@ class ScriptEval(
       val jse = JsePlatform.standardGlobals()
       jse["source"] = source
       val rt = LuaTable()
-      if (requires != null && requires.isNotEmpty()) {
+      if (!requires.isNullOrEmpty()) {
         try {
           requires.forEachIndexed { index, s ->
             val txt = ScriptCacheService.getInstance().loadRepo(s)
-            rt["${(index + 'a'.toByte().toInt()).toChar()}"] = jse.load(txt).call()
+            rt["${(index + 'a'.code).toChar()}"] = jse.load(txt).call()
           }
           jse["require"] = rt
         } catch (e: Exception) {
@@ -260,8 +260,7 @@ class ScriptEval(
   private fun execJs(source: String, script: String, callBack: (String) -> Unit) {
     val app = ApplicationManager.getApplication()
     try {
-      val factory = ScriptEngineManager()
-      val engine = factory.getEngineByName("nashorn")
+      val engine = NashornScriptEngineFactory().scriptEngine
       engine.put("source", source)
       val r = engine.eval(script)
       runWriteAction(app) {

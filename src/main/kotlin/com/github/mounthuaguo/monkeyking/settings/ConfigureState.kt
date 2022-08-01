@@ -7,9 +7,9 @@ import com.intellij.openapi.components.Storage
 import com.intellij.util.xmlb.XmlSerializerUtil
 import org.luaj.vm2.Globals
 import org.luaj.vm2.lib.jse.JsePlatform
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory
 import java.util.*
 import javax.script.Compilable
-import javax.script.ScriptEngineManager
 
 enum class ScriptLanguage(val value: String) {
   Lua("lua"), Js("js")
@@ -77,7 +77,7 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
                 support alpha,digit,dash,whitespace,underscore.<br/>
             """.trimIndent()
     }
-    if (language == "js" && requires != null && requires.size > 0) {
+    if (language == "js" && requires.isNotEmpty()) {
       return "Javascript not support require."
     }
     return if (language == "lua") {
@@ -91,7 +91,7 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
     val lastSep = name.split(" ").last()
     var baseName = name
     var index = 0
-    var newName = ""
+    var newName: String
     try {
       index = lastSep.toInt()
       baseName = baseName.removeSuffix(" $lastSep")
@@ -195,6 +195,13 @@ data class ScriptModel(var language: String = "lua", var raw: String = "", var e
       }
     }
   }
+
+  override fun hashCode(): Int {
+    var result = language.hashCode()
+    result = 31 * result + raw.hashCode()
+    result = 31 * result + enabled.hashCode()
+    return result
+  }
 }
 
 class ConfigureState {
@@ -204,9 +211,6 @@ class ConfigureState {
   fun trimInvalidScripts() {
     val list = mutableListOf<ScriptModel>()
     for (s in scripts) {
-      if (s == null) {
-        continue
-      }
       if (s.validate() != "") {
         continue
       }
@@ -281,10 +285,12 @@ class LuaValidator(private val raw: String) : ScriptValidator {
 class JavascriptValidator(private val raw: String) : ScriptValidator {
   companion object {
     @JvmStatic
-    val compiler: Compilable = ScriptEngineManager().getEngineByName("nashorn") as Compilable
+    val compiler: Compilable = NashornScriptEngineFactory().scriptEngine as Compilable
   }
 
   override fun validate(): String {
+
+
     return try {
       compiler.compile(raw)
       ""
