@@ -7,19 +7,19 @@ import com.intellij.openapi.startup.StartupActivity
 
 class ShortcutStartupActivity : StartupActivity {
 
-    @Volatile
-    private var registered = false
+  @Volatile
+  private var registered = false
 
-    override fun runActivity(project: Project) {
-        if (!this.registered) {
-            registerActions()
-            this.registered = true
-        }
+  override fun runActivity(project: Project) {
+    if (!this.registered) {
+      registerActions()
+      this.registered = true
     }
+  }
 
-    private fun registerActions() {
-        val applicationService = ApplicationService.getInstance()
-        applicationService.storeDefaultActions()
-        applicationService.reload(ConfigureStateService.getInstance().getScripts())
-    }
+  private fun registerActions() {
+    val applicationService = ApplicationService.getInstance()
+    applicationService.storeDefaultActions()
+    applicationService.reload(ConfigureStateService.getInstance().getScripts())
+  }
 }

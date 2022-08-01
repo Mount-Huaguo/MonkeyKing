@@ -11,29 +11,29 @@ import org.luaj.vm2.lib.OneArgFunction
 import org.luaj.vm2.lib.TwoArgFunction
 
 class Toast(val project: Project?) : TwoArgFunction() {
-    override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
-        val toast = LuaTable(0, 3)
-        toast["info"] = createNotify(NotificationType.INFORMATION)
-        toast["error"] = createNotify(NotificationType.ERROR)
-        toast["warn"] = createNotify(NotificationType.WARNING)
-        arg2["toast"] = toast
-        arg2["package"]["loaded"]["toast"] = toast
-        return toast
-    }
+  override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+    val toast = LuaTable(0, 3)
+    toast["info"] = createNotify(NotificationType.INFORMATION)
+    toast["error"] = createNotify(NotificationType.ERROR)
+    toast["warn"] = createNotify(NotificationType.WARNING)
+    arg2["toast"] = toast
+    arg2["package"]["loaded"]["toast"] = toast
+    return toast
+  }
 
-    private fun createNotify(notificationType: NotificationType): OneArgFunction {
-        return object : OneArgFunction() {
-            override fun call(arg: LuaValue): LuaValue {
-                project ?: return valueOf(false)
-                val message = arg.checkstring().toString()
-                val success: Notification =
-                    GlobalInspectionContextImpl.NOTIFICATION_GROUP.createNotification(
-                        message,
-                        notificationType
-                    )
-                Notifications.Bus.notify(success, project)
-                return valueOf(true)
-            }
-        }
+  private fun createNotify(notificationType: NotificationType): OneArgFunction {
+    return object : OneArgFunction() {
+      override fun call(arg: LuaValue): LuaValue {
+        project ?: return valueOf(false)
+        val message = arg.checkstring().toString()
+        val success: Notification =
+          GlobalInspectionContextImpl.NOTIFICATION_GROUP.createNotification(
+            message,
+            notificationType
+          )
+        Notifications.Bus.notify(success, project)
+        return valueOf(true)
+      }
     }
+  }
 }

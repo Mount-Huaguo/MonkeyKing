@@ -11,39 +11,39 @@ import javax.swing.JTabbedPane
 
 class ScriptConfigure(myProject: Project) : Configurable, Configurable.NoScroll {
 
-    private val mainPanel = BorderLayoutPanel()
-    private val tabbedPane = JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
-    private val scriptConfigureComponent = ScriptConfigureComponent(myProject)
-    private val browserPanel = ConfigureBrowserComponent(myProject) { model, source ->
-        tabbedPane.selectedIndex = 0
-        scriptConfigureComponent.addScript(model, source)
-    }
+  private val mainPanel = BorderLayoutPanel()
+  private val tabbedPane = JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT)
+  private val scriptConfigureComponent = ScriptConfigureComponent(myProject)
+  private val browserPanel = ConfigureBrowserComponent(myProject) { model, source ->
+    tabbedPane.selectedIndex = 0
+    scriptConfigureComponent.addScript(model, source)
+  }
 
-    init {
-        (tabbedPane).addTab("Scripts", scriptConfigureComponent)
-        (tabbedPane).addTab("Browser", browserPanel)
-        tabbedPane.addChangeListener {
-            if (tabbedPane.selectedIndex == 1) {
-                browserPanel.setupUI()
-            }
-        }
-        mainPanel.add(tabbedPane, BorderLayout.CENTER)
+  init {
+    (tabbedPane).addTab("Scripts", scriptConfigureComponent)
+    (tabbedPane).addTab("Browser", browserPanel)
+    tabbedPane.addChangeListener {
+      if (tabbedPane.selectedIndex == 1) {
+        browserPanel.setupUI()
+      }
     }
+    mainPanel.add(tabbedPane, BorderLayout.CENTER)
+  }
 
-    override fun createComponent(): JComponent {
-        return mainPanel
-    }
+  override fun createComponent(): JComponent {
+    return mainPanel
+  }
 
-    override fun isModified(): Boolean {
-        return scriptConfigureComponent.isModified()
-    }
+  override fun isModified(): Boolean {
+    return scriptConfigureComponent.isModified()
+  }
 
-    override fun apply() {
-        scriptConfigureComponent.saveScripts()
-        ApplicationService.getInstance().reload(ConfigureStateService.getInstance().getScripts())
-    }
+  override fun apply() {
+    scriptConfigureComponent.saveScripts()
+    ApplicationService.getInstance().reload(ConfigureStateService.getInstance().getScripts())
+  }
 
-    override fun getDisplayName(): String {
-        return MonkeyBundle.message("configureName")
-    }
+  override fun getDisplayName(): String {
+    return MonkeyBundle.message("configureName")
+  }
 }

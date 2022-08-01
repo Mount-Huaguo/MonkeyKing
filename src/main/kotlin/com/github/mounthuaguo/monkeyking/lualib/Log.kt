@@ -9,28 +9,28 @@ import org.luaj.vm2.lib.OneArgFunction
 import org.luaj.vm2.lib.TwoArgFunction
 
 class Log(
-    val scriptName: String,
-    val project: Project?,
+  val scriptName: String,
+  val project: Project?,
 ) : TwoArgFunction() {
 
-    override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
-        val log = LuaTable(0, 10)
-        log["info"] = LogInfo(ConsoleViewContentType.NORMAL_OUTPUT)
-        log["error"] = LogInfo(ConsoleViewContentType.ERROR_OUTPUT)
-        log["warn"] = LogInfo(ConsoleViewContentType.LOG_WARNING_OUTPUT)
-        arg2["log"] = log
-        arg2["package"]["loaded"]["log"] = log
-        return log
-    }
+  override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+    val log = LuaTable(0, 10)
+    log["info"] = LogInfo(ConsoleViewContentType.NORMAL_OUTPUT)
+    log["error"] = LogInfo(ConsoleViewContentType.ERROR_OUTPUT)
+    log["warn"] = LogInfo(ConsoleViewContentType.LOG_WARNING_OUTPUT)
+    arg2["log"] = log
+    arg2["package"]["loaded"]["log"] = log
+    return log
+  }
 
-    inner class LogInfo(private val contentType: ConsoleViewContentType) : OneArgFunction() {
-        override fun call(arg: LuaValue): LuaValue {
-            return try {
-                MyToolWindowManager.getInstance().print(project, scriptName, arg.toString() + "\n", contentType)
-                valueOf(true)
-            } catch (e: Exception) {
-                valueOf(false)
-            }
-        }
+  inner class LogInfo(private val contentType: ConsoleViewContentType) : OneArgFunction() {
+    override fun call(arg: LuaValue): LuaValue {
+      return try {
+        MyToolWindowManager.getInstance().print(project, scriptName, arg.toString() + "\n", contentType)
+        valueOf(true)
+      } catch (e: Exception) {
+        valueOf(false)
+      }
     }
+  }
 }
