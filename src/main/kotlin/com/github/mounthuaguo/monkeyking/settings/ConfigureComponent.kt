@@ -31,8 +31,8 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.util.Alarm
+import com.intellij.util.ui.HTMLEditorKitBuilder
 import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.luaj.vm2.lib.jse.JsePlatform
 import java.awt.*
@@ -271,7 +271,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 
     fun setupUI() {
       val panel = JEditorPane()
-      panel.editorKit = UIUtil.getHTMLEditorKit()
+      panel.editorKit = HTMLEditorKitBuilder.simple()
       panel.isEditable = false
       panel.addHyperlinkListener(BrowserHyperlinkListener())
       panel.background = Color(0, 0, 0, 0)
@@ -556,7 +556,7 @@ class ConfigureBrowserComponent(
       )
 
       // description detail panel
-      descriptionPanel.editorKit = UIUtil.getHTMLEditorKit()
+      descriptionPanel.editorKit = HTMLEditorKitBuilder.simple()
       descriptionPanel.isEditable = false
       descriptionPanel.addHyperlinkListener(BrowserHyperlinkListener())
 
