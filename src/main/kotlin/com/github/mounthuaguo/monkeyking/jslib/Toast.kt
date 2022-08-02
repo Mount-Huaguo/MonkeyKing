@@ -1,20 +1,16 @@
 package com.github.mounthuaguo.monkeyking.jslib
 
-import com.intellij.codeInspection.ex.GlobalInspectionContextImpl
-import com.intellij.notification.Notification
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.project.Project
 
 class Toast(val project: Project?) {
 
   private fun toast(message: String, typ: NotificationType) {
-    val success: Notification =
-      GlobalInspectionContextImpl.NOTIFICATION_GROUP.createNotification(
-        message,
-        typ
-      )
-    Notifications.Bus.notify(success, project)
+    NotificationGroupManager.getInstance()
+      .getNotificationGroup("MonkeyKing Notification Group")
+      .createNotification(message, typ)
+      .notify(project)
   }
 
   fun info(message: String) {

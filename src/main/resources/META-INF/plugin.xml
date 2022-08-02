@@ -106,6 +106,10 @@
                     canCloseContents="true"
                     icon="/asserts/icon.svg"
                     factoryClass="com.github.mounthuaguo.monkeyking.ui.ToolWindowFactory"/>
+
+        <notificationGroup id="MonkeyKing Notification Group"
+                           displayType="BALLOON"
+                           key="notification.group.name"/>
     </extensions>
 
     <!--  components  -->

@@ -2,10 +2,8 @@ package com.github.mounthuaguo.monkeyking.actions
 
 import com.github.mounthuaguo.monkeyking.settings.ScriptCacheService
 import com.github.mounthuaguo.monkeyking.ui.ScriptDialogWrapper
-import com.intellij.codeInspection.ex.GlobalInspectionContextImpl.NOTIFICATION_GROUP
-import com.intellij.notification.Notification
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -78,8 +76,10 @@ class ScriptActionWrap(
         clipboard.setContents(selection, selection)
 
         val message = "Copied!"
-        val success: Notification = NOTIFICATION_GROUP.createNotification(message, NotificationType.INFORMATION)
-        Notifications.Bus.notify(success, project)
+        NotificationGroupManager.getInstance()
+          .getNotificationGroup("MonkeyKing Notification Group")
+          .createNotification(message, NotificationType.ERROR)
+          .notify(project);
       }
 
       "replace" -> {

@@ -1,9 +1,7 @@
 package com.github.mounthuaguo.monkeyking.lualib
 
-import com.intellij.codeInspection.ex.GlobalInspectionContextImpl
-import com.intellij.notification.Notification
+import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.project.Project
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
@@ -26,12 +24,10 @@ class Toast(val project: Project?) : TwoArgFunction() {
       override fun call(arg: LuaValue): LuaValue {
         project ?: return valueOf(false)
         val message = arg.checkstring().toString()
-        val success: Notification =
-          GlobalInspectionContextImpl.NOTIFICATION_GROUP.createNotification(
-            message,
-            notificationType
-          )
-        Notifications.Bus.notify(success, project)
+        NotificationGroupManager.getInstance()
+          .getNotificationGroup("MonkeyKing Notification Group")
+          .createNotification(message, notificationType)
+          .notify(project)
         return valueOf(true)
       }
     }
