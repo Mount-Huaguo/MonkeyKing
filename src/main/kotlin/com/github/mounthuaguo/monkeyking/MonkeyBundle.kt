@@ -12,7 +12,8 @@ object MonkeyBundle : AbstractBundle(BUNDLE) {
 
     @Suppress("SpreadOperator")
     @JvmStatic
-    fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any) = getMessage(key, *params)
+    fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any) =
+        getMessage(key, *params)
 
     @Suppress("SpreadOperator")
     @JvmStatic
@@ -21,6 +22,8 @@ object MonkeyBundle : AbstractBundle(BUNDLE) {
 }
 
 object MonkeyIcons {
-    val LUA = IconLoader.getIcon("/asserts/lua.svg", MonkeyIcons.javaClass)
-    val JS = IconLoader.getIcon("/asserts/js.svg", MonkeyIcons.javaClass)
+    @JvmField
+    val LUA = IconLoader.getIcon("/asserts/lua.svg", javaClass)
+    @JvmField
+    val JS = IconLoader.getIcon("/asserts/js.svg", javaClass)
 }

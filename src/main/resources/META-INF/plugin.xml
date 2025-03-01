@@ -30,7 +30,7 @@
             <li>Insert some text from database or remote server</li>
         </ul>
         <p>
-            etc, and most of scenes you want.
+            etc., and most of the scenes you want.
         </p>
         <br/>
         ]]></description>
@@ -41,7 +41,6 @@
 
     <!--  service  -->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ApplicationService"/>
         <projectService serviceImplementation="com.github.mounthuaguo.monkeyking.services.ProjectService"/>
 
         <postStartupActivity implementation="com.github.mounthuaguo.monkeyking.ShortcutStartupActivity"/>

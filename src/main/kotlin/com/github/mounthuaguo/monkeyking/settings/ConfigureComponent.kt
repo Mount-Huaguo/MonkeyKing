@@ -133,11 +133,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
     val addAction: AnAction = object : DumbAwareAction(AllIcons.General.Add) {
       override fun actionPerformed(e: AnActionEvent) {
         val popup = JBPopupFactory.getInstance().createActionGroupPopup(
-          null,
-          newActionGroup,
-          e.dataContext,
-          JBPopupFactory.ActionSelectionAid.SPEEDSEARCH,
-          false
+          null, newActionGroup, e.dataContext, JBPopupFactory.ActionSelectionAid.SPEEDSEARCH, false
         )
         popup.show(RelativePoint.getSouthWestOf(toolbarDecorator!!.actionsPanel))
       }
@@ -190,8 +186,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 
       override fun update(e: AnActionEvent) {
         super.update(e)
-        e.presentation.isEnabled =
-          (scriptListView.selectedIndex > 0)
+        e.presentation.isEnabled = (scriptListView.selectedIndex > 0)
       }
     }
 
@@ -255,8 +250,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
   }
 
   private inner class ScriptEditorPanel(
-    val myProject: Project,
-    val scriptHasChanged: (ScriptModel) -> Unit
+    val myProject: Project, val scriptHasChanged: (ScriptModel) -> Unit
   ) : JPanel(GridBagLayout()) {
 
     private var myScriptEditorPanel = BorderLayoutPanel()
@@ -283,10 +277,8 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
       mySpliterator.secondComponent = errorComponent
 
       this.add(
-        mySpliterator,
-        GridBagConstraints(
-          0, 0, 1, 1, 1.0, 1.0,
-          GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
+        mySpliterator, GridBagConstraints(
+          0, 0, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.insetsBottom(2), 0, 0
         )
       )
     }
@@ -337,8 +329,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
           override fun documentChanged(e: DocumentEvent) {
             scriptHasChanged()
           }
-        },
-        (editor as EditorImpl).disposable
+        }, (editor as EditorImpl).disposable
       )
       myScriptEditorPanel.removeAll()
       myScriptEditorPanel.add(editor.component, BorderLayout.CENTER)
@@ -373,8 +364,7 @@ class ScriptConfigureComponent(myProject: Project) : BorderLayoutPanel() {
 }
 
 class ConfigureBrowserComponent(
-  private val myProject: Project,
-  private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
+  private val myProject: Project, private val useButtonOnClick: (modelSample: SampleScriptModel, source: String) -> Unit
 ) : BorderLayoutPanel() {
 
   private val splitter = JBSplitter(false, 0.35f, 0.3f, 0.5f)
@@ -420,8 +410,7 @@ class ConfigureBrowserComponent(
         alarm.addRequest(
           {
             handleSearchTextChanged(text)
-          },
-          300
+          }, 300
         )
       }
     })
@@ -548,10 +537,8 @@ class ConfigureBrowserComponent(
       }
       topPanel.add(button, BorderLayout.EAST)
       panel.add(
-        topPanel,
-        GridBagConstraints(
-          0, 0, 1, 1, 1.0, 0.0,
-          GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+        topPanel, GridBagConstraints(
+          0, 0, 1, 1, 1.0, 0.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
         )
       )
 
@@ -561,10 +548,8 @@ class ConfigureBrowserComponent(
       descriptionPanel.addHyperlinkListener(BrowserHyperlinkListener())
 
       panel.add(
-        ScrollPaneFactory.createScrollPane(descriptionPanel),
-        GridBagConstraints(
-          0, 1, 1, 1, 1.0, 1.0,
-          GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
+        ScrollPaneFactory.createScrollPane(descriptionPanel), GridBagConstraints(
+          0, 1, 1, 1, 1.0, 1.0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, JBUI.emptyInsets(), 0, 0
         )
       )
       editorPanel = ConfigureBrowserEditorPanel()
@@ -610,6 +595,8 @@ class ConfigureBrowserComponent(
     private val repository = mutableListOf<SampleScriptModel>()
     private var timestamp = Date().time
 
+    private var availableBaseUrl = ""
+
     private val cache = mutableMapOf<String, Response>()
 
     private fun getScripts(): List<SampleScriptModel> = synchronized(repository) {
@@ -627,19 +614,28 @@ class ConfigureBrowserComponent(
 
       val app = ApplicationManager.getApplication()
       app.executeOnPooledThread() {
-        try {
-          val url = MonkeyBundle.message("repositoryBaseUrl") + MonkeyBundle.message("repositoryPath")
-          val response = URL(url).readText()
-          this.processSampleScriptRaw(response)
-          app.invokeLater(
-            {
-              callBack(this.getScripts())
-            },
-            ModalityState.any()
-          )
-        } catch (e: Exception) {
-          callBack(this.getScripts())
+        val repositoryBaseUrls = MonkeyBundle.message("repositoryBaseUrls")
+        if (repositoryBaseUrls.isEmpty()) {
+          return@executeOnPooledThread
         }
+        val urls = repositoryBaseUrls.split(",")
+        for (repositoryBaseUrl in urls) {
+          try {
+            val url = repositoryBaseUrl + MonkeyBundle.message("repositoryPath")
+//            println("begin fetch url $url")
+            val response = URL(url).readText()
+            this.processSampleScriptRaw(response)
+            app.invokeLater(
+              {
+                callBack(this.getScripts())
+              }, ModalityState.any()
+            )
+            availableBaseUrl = repositoryBaseUrl
+          } catch (e: Exception) {
+            // todo
+          }
+        }
+        callBack(this.getScripts())
       }
     }
 
@@ -680,7 +676,9 @@ class ConfigureBrowserComponent(
     }
 
     private fun url(pth: String): URL {
-      return URL(MonkeyBundle.message("repositoryBaseUrl") + "/" + pth)
+      val u1 = if (availableBaseUrl.endsWith("/")) availableBaseUrl.dropLast(1) else availableBaseUrl
+      val u2 = if (pth.startsWith("/")) pth.drop(1) else pth
+      return URL("$u1/$u2")
     }
 
     fun loadIntroAndSource(introUrl: String, sourceUrl: String, callback: (Response?, Response?) -> Unit) {
@@ -711,8 +709,7 @@ class ConfigureBrowserComponent(
           app.invokeLater(
             {
               callback(intro, source)
-            },
-            ModalityState.any()
+            }, ModalityState.any()
           )
         } catch (e: Exception) {
           e.printStackTrace()
@@ -795,8 +792,7 @@ class ConfigureBrowserComponent(
               }
             }
           }
-        },
-        ModalityState.any()
+        }, ModalityState.any()
       )
     }
 

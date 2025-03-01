@@ -11,21 +11,13 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.extensions.PluginId
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.openapi.vfs.newvfs.BulkFileListener
-import com.intellij.openapi.vfs.newvfs.events.VFileCreateEvent
-import com.intellij.openapi.vfs.newvfs.events.VFileEvent
-import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.messages.MessageBusConnection
 import org.luaj.vm2.LuaTable
-import org.luaj.vm2.lib.jse.CoerceJavaToLua
-import org.luaj.vm2.lib.jse.JsePlatform
-import java.awt.Window
 
+@Service
 class ApplicationService : Disposable {
 
   private val actionGroupId = MonkeyBundle.message("actionGroupId")
@@ -57,59 +49,7 @@ class ApplicationService : Disposable {
   }
 
   fun reload(scripts: List<ScriptModel>) {
-    reloadListener(scripts)
     reloadActions(scripts)
-  }
-
-  // reload listener
-  // todo not implement
-  private fun reloadListener(scripts: List<ScriptModel>) {
-    conn?.let {
-      conn!!.disconnect()
-    }
-    val createListeners = mutableListOf<ScriptModel>()
-    val updateListeners = mutableListOf<ScriptModel>()
-    val removeListeners = mutableListOf<ScriptModel>()
-    for (script in scripts) {
-      if (script.type != "listener") {
-        continue
-      }
-    }
-    if (createListeners.size == 0 && updateListeners.size == 0 && removeListeners.size == 0) {
-      return
-    }
-    val bus = ApplicationManager.getApplication().messageBus
-    conn = bus.connect()
-    conn!!.subscribe(
-      VirtualFileManager.VFS_CHANGES,
-      object : BulkFileListener {
-        override fun before(events: List<VFileEvent?>) {
-          val projects = ProjectManager.getInstance().openProjects
-          var activityProject: Project? = null
-          for (project in projects) {
-            val window: Window? = WindowManager.getInstance().suggestParentWindow(project)
-            if (window != null && window.isActive) {
-              activityProject = project
-              break
-            }
-          }
-          activityProject ?: return
-
-          for (event in events) {
-            if (event is VFileCreateEvent) {
-              for (script in createListeners) run {
-                val jse = JsePlatform.standardGlobals()
-                jse["event"] = CoerceJavaToLua.coerce(event)
-                jse["project"] = CoerceJavaToLua.coerce(activityProject)
-                val chuck = jse.load(script.raw)
-                chuck.call()
-              }
-            }
-            // todo update and delete
-          }
-        }
-      }
-    )
   }
 
   // reload actions
@@ -137,56 +77,50 @@ class ApplicationService : Disposable {
       }
       val id = actionManager.getId(action)
       group.remove(action, actionManager)
-      actionManager.unregisterAction(id)
+      if (id != null) {
+        actionManager.unregisterAction(id)
+      }
     }
   }
 
   private fun registerAllActions(
-    actionManager: ActionManager,
-    group: DefaultActionGroup,
-    scripts: List<ScriptModel>
+    actionManager: ActionManager, group: DefaultActionGroup, scripts: List<ScriptModel>
   ) {
-    scripts.withIndex()
-      .reversed()
-      .forEach {
-        val script = it.value
-        if (script.type != "action") {
-          return@forEach
+    scripts.withIndex().reversed().forEach {
+      val script = it.value
+      if (script.type != "action") {
+        return@forEach
+      }
+      if (!script.enabled) {
+        return@forEach
+      }
+      if (script.actions.size > 1) {
+        val subGroup = DefaultActionGroup.createPopupGroup {
+          script.name
         }
-        if (!script.enabled) {
-          return@forEach
-        }
-        if (script.actions.size > 1) {
-          val subGroup = DefaultActionGroup.createPopupGroup {
-            script.name
-          }
-          for (menu in script.actions) {
-            val id = script.genMenuId(menu)
-            val action = ScriptAction(script, menu)
-            action.templatePresentation.text = menu
-            action.templatePresentation.description = menu
-            actionManager.registerAction(
-              id,
-              action,
-              PluginId.getId(MonkeyBundle.getMessage("pluginId"))
-            )
-            subGroup.add(action, Constraints.LAST)
-          }
-          group.add(subGroup, Constraints.FIRST)
-        } else if (script.actions.size == 1) {
-          val menu = script.actions[0]
+        for (menu in script.actions) {
           val id = script.genMenuId(menu)
           val action = ScriptAction(script, menu)
           action.templatePresentation.text = menu
           action.templatePresentation.description = menu
           actionManager.registerAction(
-            id,
-            action,
-            PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+            id, action, PluginId.getId(MonkeyBundle.getMessage("pluginId"))
           )
-          group.add(action, Constraints.FIRST)
+          subGroup.add(action, Constraints.LAST)
         }
+        group.add(subGroup, Constraints.FIRST)
+      } else if (script.actions.size == 1) {
+        val menu = script.actions[0]
+        val id = script.genMenuId(menu)
+        val action = ScriptAction(script, menu)
+        action.templatePresentation.text = menu
+        action.templatePresentation.description = menu
+        actionManager.registerAction(
+          id, action, PluginId.getId(MonkeyBundle.getMessage("pluginId"))
+        )
+        group.add(action, Constraints.FIRST)
       }
+    }
   }
 
   override fun dispose() {
@@ -270,9 +204,7 @@ class ScriptAction(private val script: ScriptModel, private val menu: String) : 
 }
 
 class LuaScriptAction(
-  private val script: ScriptModel,
-  private val menu: String,
-  private val actionEvent: AnActionEvent
+  private val script: ScriptModel, private val menu: String, private val actionEvent: AnActionEvent
 ) {
 
   private fun showError(msg: String) {
@@ -283,9 +215,7 @@ class LuaScriptAction(
   fun run() {
     try {
       val env = IdeaPlatform(
-        scriptName = script.name,
-        project = actionEvent.project,
-        actionEvent = actionEvent
+        scriptName = script.name, project = actionEvent.project, actionEvent = actionEvent
       ).globals()
       env["menu"] = menu
       if (script.requires.isNotEmpty()) {
@@ -299,8 +229,7 @@ class LuaScriptAction(
               app.invokeLater(
                 {
                   showError("Error load require: $it")
-                },
-                ModalityState.any()
+                }, ModalityState.any()
               )
               return@executeOnPooledThread
             }
@@ -312,8 +241,7 @@ class LuaScriptAction(
               app.invokeLater(
                 {
                   showError("Error exec require: $it")
-                },
-                ModalityState.any()
+                }, ModalityState.any()
               )
             }
           }
@@ -327,8 +255,7 @@ class LuaScriptAction(
                 e.printStackTrace()
                 showError("Error exec script: ${script.name}")
               }
-            },
-            ModalityState.any()
+            }, ModalityState.any()
           )
         }
       } else {
@@ -344,9 +271,7 @@ class LuaScriptAction(
 }
 
 class JsScriptAction(
-  private val script: ScriptModel,
-  private val menu: String,
-  private val actionEvent: AnActionEvent
+  private val script: ScriptModel, private val menu: String, private val actionEvent: AnActionEvent
 ) {
   private fun showError(msg: String) {
     MyToolWindowManager.getInstance().print(actionEvent.project, script.name, "$msg\n")

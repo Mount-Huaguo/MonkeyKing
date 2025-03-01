@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [0.1.7]
+
+- Update org.jetbrains.intellij version and fix some bugs.
+
 ## [0.1.6]
 
 - Update org.jetbrains.intellij version and fix some bugs.
